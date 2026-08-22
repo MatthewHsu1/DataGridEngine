@@ -8,5 +8,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!--
+      glide-data-grid draws every cell overlay editor into this element and looks
+      it up by id. The package creates it if it is missing (see
+      src/features/dataGrid/ensurePortal.ts), but a host that wants to control
+      its stacking declares it here, last in <body>, so an editor paints above
+      the grid.
+    -->
+    <div id="portal" style="position: fixed; left: 0; top: 0; z-index: 9999"></div>
   </body>
 </html>

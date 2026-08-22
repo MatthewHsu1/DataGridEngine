@@ -21,6 +21,20 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* The demo imports the package by NAME, so that a missing barrel export
+       breaks the demo build. `tsc` must resolve that name the same way
+       demo/vite.config.ts aliases it — to SOURCE.
+
+       Without this, TypeScript self-references the package through its own
+       `exports` field and resolves to ./dist, which only exists after a build.
+       Typecheck would then pass locally (stale dist present) and fail in CI
+       (clean checkout, typecheck runs before build). */
+    "paths": {
+      "@matthewhsu1/datagrid": ["./src/index.ts"],
+      "@matthewhsu1/datagrid/testing": ["./src/testing.ts"],
+      "@matthewhsu1/datagrid/radix-styles": ["./src/theme/radixStyles.ts"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

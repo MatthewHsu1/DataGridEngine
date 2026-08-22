@@ -68,7 +68,25 @@ configureStore({ reducer: { appearance: appearanceReducer /* ... */ } });
 keep it. What _writes_ it — an OS media query, a host page class, a toggle — is
 always yours.
 
-### 4. Describe a grid
+### 4. The overlay portal (usually automatic)
+
+glide-data-grid draws every cell editor into a `<div id="portal">` it looks up
+by id. **Without it, no cell can be edited** — and the grid otherwise looks
+perfectly healthy, so it is a nasty thing to debug. `<DataGrid>` creates the
+element on mount if your app has not, so normally you do nothing.
+
+Declare it yourself only if you need to control its stacking:
+
+```html
+<body>
+  <div id="root"></div>
+  <div id="portal" style="position: fixed; left: 0; top: 0; z-index: 9999"></div>
+</body>
+```
+
+An element you provide is left exactly as it is.
+
+### 5. Describe a grid
 
 ```ts
 import {
@@ -133,7 +151,7 @@ changing anything in `src/features/dataGrid/`.
 ## Develop
 
 ```bash
-npm test          # 425 tests
+npm test          # 430 tests
 npm run typecheck
 npm run lint
 npm run build     # dist/ — JS, .d.ts, and datagrid.css

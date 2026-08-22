@@ -1,10 +1,11 @@
 // src/features/dataGrid/DataGrid.tsx
 import { DataEditor, type DataEditorRef, type Rectangle } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
-import { useCallback, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useGridTheme } from "../../theme/useGridTheme";
 import { specFromGridSort } from "./data/sortSpec";
+import { ensureGridPortal } from "./ensurePortal";
 import { useRowSync } from "./data/sync/useRowSync";
 import type { DisplayModel } from "./displayModel";
 import { GridStatusBar } from "./GridStatusBar";
@@ -25,6 +26,11 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
 }: {
   instance: GridInstance<TRow, TGroup, TKey>;
 }) {
+  // Before glide can paint, and therefore long before the first editor opens.
+  // A missing portal is silent: the grid renders, and editing simply does
+  // nothing. See `ensurePortal.ts`.
+  useLayoutEffect(() => ensureGridPortal(), []);
+
   const gridRef = useRef<DataEditorRef>(null);
 
   // `repaintRows` translates a data index into the display row glide draws it
