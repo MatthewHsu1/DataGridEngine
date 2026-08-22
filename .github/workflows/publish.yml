@@ -9,7 +9,9 @@ name: Publish
 #
 # ONE-TIME SETUP, because npm cannot enable OIDC for a package that does not
 # exist yet (npm/cli#8544):
-#   1. Publish 0.1.0 by hand, once:  npm publish --access public   (2FA prompt)
+#   1. Publish 0.1.0 by hand, once:  npm run release:manual   (2FA prompt)
+#      No --provenance there: provenance attests to a CI build environment, and
+#      npm errors with "provider: null" when there is none. Only this job signs.
 #   2. npmjs.com -> the package -> Settings -> Trusted Publisher
 #      GitHub Actions | owner: MatthewHsu1 | repo: DataGridEngine
 #      workflow: publish.yml | allowed action: npm publish

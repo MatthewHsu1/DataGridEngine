@@ -52,7 +52,7 @@
     "test:watch": "vitest",
     "dev": "vite --config demo/vite.config.ts",
     "demo:build": "vite build --config demo/vite.config.ts",
-    "release:manual": "npm run lint && npm run typecheck && npm test && npm run build && npm publish --provenance --access public"
+    "release:manual": "npm run lint && npm run typecheck && npm test && npm run build && npm publish --access public"
   },
   "peerDependencies": {
     "@glideapps/glide-data-grid": "6.0.4-alpha24",
