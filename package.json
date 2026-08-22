@@ -1,7 +1,7 @@
 {
   "name": "@matthewhsu1/datagrid",
   "version": "0.1.0",
-  "description": "A virtualised, server-paged data grid engine for React — windowed paging, a page cache, optimistic edits, cross-client row sync, grouping, and typed cell editors, over glide-data-grid.",
+  "description": "A virtualised, server-paged data grid engine for React \u2014 windowed paging, a page cache, optimistic edits, cross-client row sync, grouping, and typed cell editors, over glide-data-grid.",
   "license": "MIT",
   "author": "MatthewHsu1 <matthewhsu1128@gmail.com>",
   "repository": {
@@ -52,7 +52,7 @@
     "test:watch": "vitest",
     "dev": "vite --config demo/vite.config.ts",
     "demo:build": "vite build --config demo/vite.config.ts",
-    "prepublishOnly": "npm run build"
+    "release:manual": "npm run lint && npm run typecheck && npm test && npm run build && npm publish --provenance --access public"
   },
   "peerDependencies": {
     "@glideapps/glide-data-grid": "6.0.4-alpha24",
