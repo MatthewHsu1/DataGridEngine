@@ -1,0 +1,66 @@
+import { forwardRef, useEffect, useRef, useState, type InputHTMLAttributes } from "react";
+import { cx } from "../../lib/utils";
+import { Input } from "./input";
+import { validateText, type TextValidationOptions } from "../../lib/text/textValidation";
+
+export interface ValidatedInputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange"
+> {
+  value: string;
+  onChange: (value: string) => void;
+  validation: TextValidationOptions;
+  onValidityChange?: (valid: boolean) => void;
+}
+
+/**
+ * Text input with configurable validation (required, min/max length, email,
+ * regex, custom). Shows the first failing rule as a red border + message, but
+ * only after the field has been touched (blurred once). `maxLength` is enforced
+ * natively so over-typing is blocked; every other rule reports on change.
+ * Wraps the shared `Input` for consistent styling.
+ */
+export const ValidatedInput = forwardRef<HTMLInputElement, ValidatedInputProps>(
+  (
+    { value, onChange, validation, onValidityChange, className, onBlur, maxLength, ...rest },
+    ref,
+  ) => {
+    const [touched, setTouched] = useState(false);
+    const result = validateText(value, validation);
+    const valid = result.valid;
+    const error = result.valid ? null : result.error;
+
+    // Fire onValidityChange when validity flips (and on mount), without
+    // re-firing when the parent passes a fresh callback identity each render.
+    const validityCb = useRef(onValidityChange);
+
+    validityCb.current = onValidityChange;
+
+    useEffect(() => {
+      validityCb.current?.(valid);
+    }, [valid]);
+
+    const showError = touched && !valid;
+
+    return (
+      <div className="dg-field">
+        <Input
+          ref={ref}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={(e) => {
+            setTouched(true);
+            onBlur?.(e);
+          }}
+          maxLength={maxLength ?? validation.maxLength}
+          aria-invalid={showError || undefined}
+          className={cx(showError && "dg-input--invalid", className)}
+          {...rest}
+        />
+        {showError && <span className="dg-field__error">{error}</span>}
+      </div>
+    );
+  },
+);
+
+ValidatedInput.displayName = "ValidatedInput";

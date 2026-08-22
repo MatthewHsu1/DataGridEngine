@@ -1,0 +1,30 @@
+/*
+ * The demo's own document styles. The package ships its own stylesheet
+ * (datagrid.css) — nothing here belongs to the grid.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Radix's <Theme> emits a real DOM node between #root and the page. Without
+ * this rule that div is a non-flex, auto-height block, which breaks the #root
+ * flex chain: the page's `flex: 1` has no flex parent to size against, so it
+ * collapses to content height and the grid canvas (which sizes to 100% of its
+ * parent) renders as a sliver.
+ */
+#root > .radix-themes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}

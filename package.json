@@ -1,0 +1,100 @@
+{
+  "name": "@matthewhsu1/datagrid",
+  "version": "0.1.0",
+  "description": "A virtualised, server-paged data grid engine for React — windowed paging, a page cache, optimistic edits, cross-client row sync, grouping, and typed cell editors, over glide-data-grid.",
+  "license": "MIT",
+  "author": "MatthewHsu1 <matthewhsu1128@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MatthewHsu1/DataGridEngine.git"
+  },
+  "keywords": [
+    "react",
+    "data-grid",
+    "datagrid",
+    "virtualized",
+    "glide-data-grid",
+    "redux-toolkit",
+    "tanstack-query",
+    "server-side-paging"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "*.css",
+    "./dist/radix-styles.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./radix-styles": "./dist/radix-styles.js",
+    "./datagrid.css": "./dist/datagrid.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build": "tsup && node scripts/copy-assets.mjs",
+    "typecheck": "tsc -b",
+    "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "vite --config demo/vite.config.ts",
+    "demo:build": "vite build --config demo/vite.config.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@glideapps/glide-data-grid": "6.0.4-alpha24",
+    "@radix-ui/themes": "^3.3.0",
+    "@reduxjs/toolkit": "^2.12.0",
+    "@tanstack/react-query": "^5.101.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-redux": "^9.3.0"
+  },
+  "dependencies": {
+    "@tanstack/react-pacer": "^0.22.1",
+    "lucide-react": "^1.23.0",
+    "react-day-picker": "^9.14.0",
+    "react-number-format": "^5.4.5",
+    "react-phone-number-input": "^3.4.17"
+  },
+  "devDependencies": {
+    "@glideapps/glide-data-grid": "6.0.4-alpha24",
+    "@radix-ui/themes": "^3.3.0",
+    "@reduxjs/toolkit": "^2.12.0",
+    "@tanstack/react-query": "^5.101.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "jsdom": "^29.1.1",
+    "msw": "^2.15.0",
+    "oxlint": "^1.71.0",
+    "prettier": "^3.9.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-redux": "^9.3.0",
+    "tsup": "^8.5.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vitest": "^4.1.9"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
