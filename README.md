@@ -157,6 +157,24 @@ npm run lint
 npm run build     # dist/ — JS, .d.ts, and datagrid.css
 ```
 
+## Releasing
+
+Versions ship from CI on a `v*` tag, authenticated with npm **trusted
+publishing** (OIDC) — there is no `NPM_TOKEN` anywhere in this repo.
+
+```bash
+# bump package.json first, then:
+git tag v0.1.1
+git push origin main --tags
+```
+
+The workflow refuses to publish if the tag and `package.json` disagree.
+
+npm cannot enable OIDC for a package that does not exist yet
+([npm/cli#8544](https://github.com/npm/cli/issues/8544)), so the very first
+version was published by hand. See the header of
+[`.github/workflows/publish.yml`](.github/workflows/publish.yml).
+
 ## Licence
 
 MIT

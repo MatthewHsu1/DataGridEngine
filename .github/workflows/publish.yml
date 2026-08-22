@@ -2,6 +2,18 @@ name: Publish
 
 # A version ships by tag, never from a laptop: the same checks CI runs have to
 # pass before npm sees the package, so a forgotten rebuild cannot be published.
+#
+# Authentication is TRUSTED PUBLISHING (OIDC) — no NPM_TOKEN, nothing to rotate,
+# and nothing to leak. npm mints a short-lived credential for this exact
+# workflow in this exact repo.
+#
+# ONE-TIME SETUP, because npm cannot enable OIDC for a package that does not
+# exist yet (npm/cli#8544):
+#   1. Publish 0.1.0 by hand, once:  npm publish --access public   (2FA prompt)
+#   2. npmjs.com -> the package -> Settings -> Trusted Publisher
+#      GitHub Actions | owner: MatthewHsu1 | repo: DataGridEngine
+#      workflow: publish.yml | allowed action: npm publish
+#   3. Every version after that ships from here.
 on:
   push:
     tags: ["v*"]
@@ -11,15 +23,35 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # npm provenance
+      id-token: write # required: this is what OIDC signs with
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Trusted publishing needs Node >= 22.14.0.
+          node-version: "22.14.0"
           cache: npm
           registry-url: https://registry.npmjs.org
+
+      # Node 22 bundles npm 10.x; trusted publishing needs npm >= 11.5.1.
+      # Without this the publish falls back to token auth and fails.
+      - name: Use an npm that can do trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      # Before anything expensive: a tag that disagrees with package.json would
+      # ship the wrong version number, and that cannot be taken back.
+      - name: Fail if the tag does not match package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag v$TAG does not match package.json $PKG"
+            exit 1
+          fi
+          echo "publishing $PKG"
 
       - run: npm ci
 
@@ -28,15 +60,5 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      - name: Fail if the tag does not match package.json
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          PKG="$(node -p "require('./package.json').version")"
-          if [ "$TAG" != "$PKG" ]; then
-            echo "tag v$TAG does not match package.json $PKG"
-            exit 1
-          fi
-
+      # No NODE_AUTH_TOKEN. OIDC supplies the credential.
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
