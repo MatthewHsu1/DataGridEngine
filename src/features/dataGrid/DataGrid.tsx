@@ -8,6 +8,8 @@ import { specFromGridSort } from "./data/sortSpec";
 import { ensureGridPortal } from "./ensurePortal";
 import { useRowSync } from "./data/sync/useRowSync";
 import type { DisplayModel } from "./displayModel";
+import { GroupHeaderLayer } from "./GroupHeaderLayer";
+import { COLUMN_HEADER_HEIGHT } from "./rowHeights";
 import { ColumnPicker } from "./ColumnPicker";
 import { GridHeaderBar } from "./GridHeaderBar";
 import { sortHeaderIcons } from "./headerIcons";
@@ -17,10 +19,31 @@ import { useGridColumns } from "./hooks/useGridColumns";
 import { useGridData } from "./hooks/useGridData";
 import { useGridSelection } from "./hooks/useGridSelection";
 import { useGridSort } from "./hooks/useGridSort";
+import { useGroupBanner } from "./hooks/useGroupBanner";
+import { useGroupHeaders } from "./hooks/useGroupHeaders";
 import { useRepaintRows } from "./hooks/useRepaintRows";
 import { useWindowRange, type RangeLoaded } from "./hooks/useWindowRange";
 import type { GridInstance } from "./types";
 import { useGridDispatch } from "./useGridDispatch";
+
+/**
+ * Width of the row-marker column, pinned rather than left to glide.
+ *
+ * Glide sizes it from the row count (32 up to 48), and the header layer has to
+ * start clear of it. Two places deriving the same number from a count that
+ * changes as pages load is a drift waiting to happen; one number both sides
+ * read is not.
+ */
+const ROW_MARKER_WIDTH = 40;
+
+/**
+ * Room left at the right edge of a group header for the vertical scrollbar.
+ *
+ * A header spans the full width of the canvas, and the scrollbar sits on top of
+ * the last few pixels of it. Without this the last thing a host puts in a
+ * header is half hidden under it.
+ */
+const SCROLLBAR_GUTTER = 18;
 
 export function DataGrid<TRow extends object, TGroup, TKey extends string | number = number>({
   instance,
@@ -51,10 +74,15 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   const rangeLoadedRef = useRef<RangeLoaded | null>(null);
 
   const gridTheme = useGridTheme();
+
   const dispatch = useGridDispatch();
+
   const pageSize = instance.descriptor.pageSize ?? 100;
 
+  const grouping = instance.descriptor.grouping;
+
   const { sort, collapsedGroups } = useSelector((s: unknown) => instance.selectRoot(s).groups);
+
   const lastError = useSelector((s: unknown) => instance.selectRoot(s).edits.lastError);
 
   const spec = specFromGridSort(sort);
@@ -86,15 +114,34 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   // shown or name one the grid no longer draws.
   columnCountRef.current = columns.length;
 
-  const { model, onHeaderOrCellClicked } = useDisplayModel(instance, { total, span });
+  const { model, toggleGroup } = useDisplayModel(instance, { total, span });
 
   // A group collapse or a grown span rebuilds the model, and every rebuild moves
   // which display row a data index sits at. Publishing it here, during render,
   // is what stops a repaint translating against a mapping the grid has already
   // stopped drawing.
   modelRef.current = model;
-  const { gridSelection, onGridSelectionChange } = useGridSelection(instance, model, rowAt);
+
+  const { layerRef, visibleHeaders, bannerGroup, rowHeight, trackRegion, revealAfterCollapse } =
+    useGroupHeaders({ model, collapsedGroups, grouping, gridRef });
+
+  const {
+    banner,
+    slot: groupSlot,
+    groupColor,
+  } = useGroupBanner({
+    grouping,
+    group: bannerGroup,
+    collapsedGroups,
+    fallbackColor: gridTheme.textHeader,
+    toggleGroup,
+    revealAfterCollapse,
+  });
+
+  const { gridSelection, onGridSelectionChange } = useGridSelection(instance, model, rowAt, store);
+
   const { onHeaderClicked } = useGridSort(instance, visibleFields);
+  
   const { getCellContent, onCellEdited } = useCellRenderer(instance, {
     model,
     visibleFields,
@@ -118,8 +165,15 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   );
 
   const onVisibleRegionChanged = useCallback(
-    (rect: Rectangle) => onRectChanged(model, rect),
-    [onRectChanged, model],
+    (rect: Rectangle, _tx: number, ty: number) => {
+      onRectChanged(model, rect);
+
+      // `ty` is the sub-row scroll offset for THIS region, and it is the only
+      // way to place a header on the frame being drawn. Asking glide where the
+      // row is answers about the frame before it — see `headerPlacements`.
+      trackRegion(rect, ty);
+    },
+    [onRectChanged, trackRegion, model],
   );
 
   return (
@@ -131,7 +185,8 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
         stale={isStale}
         onRetry={retry}
         onDismissError={dismissError}
-        group={null}
+        group={banner}
+        groupSlot={groupSlot}
         picker={<ColumnPicker instance={instance} />}
       />
 
@@ -157,13 +212,14 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
           validateCell={(_cell, newValue) => instance.descriptor.cells.validateCell(newValue)}
           columns={columns}
           rows={model.rowCount}
+          rowHeight={rowHeight}
+          headerHeight={COLUMN_HEADER_HEIGHT}
           getCellContent={getCellContent}
           onCellEdited={onCellEdited}
-          onCellClicked={onHeaderOrCellClicked}
           onVisibleRegionChanged={onVisibleRegionChanged}
           onColumnResize={onColumnResize}
           onColumnMoved={onColumnMoved}
-          rowMarkers="checkbox-visible"
+          rowMarkers={{ kind: "checkbox-visible", width: ROW_MARKER_WIDTH }}
           gridSelection={gridSelection}
           onGridSelectionChange={onGridSelectionChange}
           onHeaderClicked={onHeaderClicked}
@@ -172,6 +228,25 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
           smoothScrollX
           smoothScrollY
         />
+
+        {/*
+          The group headers, in React, over the canvas holes reserved for them.
+          A canvas cannot hold a component, so this is the only place a host's
+          per-group components can live. See `GroupHeaderLayer`.
+        */}
+        {grouping !== undefined && (
+          <GroupHeaderLayer
+            ref={layerRef}
+            headers={visibleHeaders}
+            label={grouping.label}
+            textColor={groupColor}
+            slot={grouping.header}
+            background={gridTheme.bgHeader}
+            markerWidth={ROW_MARKER_WIDTH}
+            gutterRight={SCROLLBAR_GUTTER}
+            onToggle={toggleGroup}
+          />
+        )}
       </div>
     </div>
   );

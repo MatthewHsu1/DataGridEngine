@@ -88,7 +88,19 @@ export function createEnumCell({
           defaultOpen
         >
           <Select.Trigger variant="soft" placeholder="—" />
-          <Select.Content position="popper">
+          {/*
+            The dropdown is PORTALLED out of the cell overlay, so glide sees a
+            press on an option as a click outside the editor. Its outside-click
+            handler runs on `pointerdown`, in the capture phase, which is before
+            the Select decides anything on `pointerup` — so the overlay closed
+            and the choice was thrown away. Only the keyboard worked, because it
+            never presses a pointer.
+
+            `click-outside-ignore` is glide's own escape hatch for exactly this:
+            it walks up from whatever was pressed and stops if it finds the
+            class. See `internal/click-outside-container`.
+          */}
+          <Select.Content position="popper" className="click-outside-ignore">
             {nullable && (
               <Select.Item value={NONE_VALUE}>
                 <Text color="gray">None</Text>

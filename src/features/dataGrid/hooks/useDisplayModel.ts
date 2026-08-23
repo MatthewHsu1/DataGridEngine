@@ -1,12 +1,10 @@
 // src/features/dataGrid/hooks/useDisplayModel.ts
-import type { Item } from "@glideapps/glide-data-grid";
 import { useCallback, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   buildDisplayModel,
   buildFlatModel,
   detectBoundaries,
-  displayToData,
   firstAffectedDataIndex,
   type Boundary,
   type DisplayModel,
@@ -22,7 +20,20 @@ interface Args<TRow, TGroup> {
 
 interface Result<TGroup> {
   model: DisplayModel<TGroup>;
-  onHeaderOrCellClicked: (cellIndex: Item) => void;
+
+  /**
+   * Collapse a group, or expand it again.
+   *
+   * THE ONLY dispatcher of `toggleCollapse`, and it has to stay that way.
+   * Every collapse must first record where it starts, and only this hook
+   * holds the display model that knows. A second dispatcher that skipped
+   * that step would carry pages measured against the old positions, and the
+   * rows would come back under the wrong indexes with nothing to say so.
+   *
+   * The in-grid header, the banner, and anything added later all come
+   * through here.
+   */
+  toggleGroup: (group: TGroup) => void;
 }
 
 /** What the current span says about groups: where they start, and which ones it holds. */
@@ -117,27 +128,18 @@ export function useDisplayModel<TRow extends object, TGroup, TKey extends string
     );
   }, [grouping, boundaries, span.precedingGroupKey, total, collapsedGroups, discoveredGroups]);
 
-  const onHeaderOrCellClicked = useCallback(
-    (cellIndex: Item) => {
-      const cell = displayToData(model, cellIndex[1]);
-
-      if (cell.kind !== "header") {
-        return;
-      }
-
+  const toggleGroup = useCallback(
+    (group: TGroup) => {
       // Where the collapse starts, in the coordinates of the store the screen
       // is reading right now. Only the model knows it, and the model is in
       // scope here alone. `useGridData` takes it on the next render and uses it
       // to keep the pages ABOVE the group instead of asking for them again.
-      //
-      // This is the only dispatcher of `toggleCollapse`. A second one must
-      // write this cell too, or its collapse silently carries stale pages.
-      instance.carryFromRef.current = firstAffectedDataIndex(model, cell.group);
+      instance.carryFromRef.current = firstAffectedDataIndex(model, group);
 
-      dispatch(instance.actions.toggleCollapse(cell.group));
+      dispatch(instance.actions.toggleCollapse(group));
     },
     [model, dispatch, instance],
   );
 
-  return { model, onHeaderOrCellClicked };
+  return { model, toggleGroup };
 }

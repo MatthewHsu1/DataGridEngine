@@ -9,6 +9,7 @@ import {
   firstAffectedDataIndex,
   groupAtDisplayRow,
   headersInDisplayRange,
+  sameHeaders,
   type Boundary,
 } from "./displayModel";
 
@@ -480,5 +481,37 @@ describe("groupAtDisplayRow", () => {
 
   it("answers null past the last row, rather than a group that is not there", () => {
     expect(groupAtDisplayRow(THREE_GROUPS, 99)).toBeNull();
+  });
+});
+
+describe("sameHeaders", () => {
+  const a = { displayRow: 0, group: 0, collapsed: false };
+  const b = { displayRow: 5, group: 1, collapsed: false };
+
+  it("says a scroll inside one group changed nothing", () => {
+    // The whole point: this runs on every visible-region change, and answering
+    // "changed" re-renders the header layer. Inside a tall group that is every
+    // frame of a scroll, for a set that never moved.
+    expect(sameHeaders([a, b], [a, b])).toBe(true);
+  });
+
+  it("compares by value, not by array identity", () => {
+    expect(sameHeaders([{ ...a }], [{ ...a }])).toBe(true);
+  });
+
+  it("notices a header scrolling into view", () => {
+    expect(sameHeaders([a], [a, b])).toBe(false);
+  });
+
+  it("notices a header scrolling out of view", () => {
+    expect(sameHeaders([a, b], [b])).toBe(false);
+  });
+
+  it("notices a header that moved, because the rows above it changed height", () => {
+    expect(sameHeaders([a], [{ ...a, displayRow: 3 }])).toBe(false);
+  });
+
+  it("notices a group folding shut, so its arrow turns round", () => {
+    expect(sameHeaders([a], [{ ...a, collapsed: true }])).toBe(false);
   });
 });

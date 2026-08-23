@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDisplayModel, buildFlatModel } from "./displayModel";
-import { DEFAULT_GROUP_HEADER_HEIGHT, rowHeightFor } from "./rowHeights";
+import { DEFAULT_GROUP_HEADER_HEIGHT, DEFAULT_ROW_HEIGHT, rowHeightFor } from "./rowHeights";
 
 const order = (g: number) => g;
 
@@ -44,5 +44,12 @@ describe("rowHeightFor", () => {
 
   it("names a default height, so a descriptor need not care until it does", () => {
     expect(DEFAULT_GROUP_HEADER_HEIGHT).toBeGreaterThan(0);
+  });
+
+  it("keeps glide's own default row height, so passing a function changes nothing else", () => {
+    // Handing glide a rowHeight FUNCTION replaces its default for every row,
+    // headers and data alike. Data rows have to be told the height they already
+    // had, or the whole grid silently changes density.
+    expect(DEFAULT_ROW_HEIGHT).toBe(34);
   });
 });

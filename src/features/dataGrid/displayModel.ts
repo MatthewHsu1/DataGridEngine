@@ -503,3 +503,27 @@ export function groupAtDisplayRow<TGroup>(
 
   return null;
 }
+
+/**
+ * Whether two runs of visible headers describe the same thing.
+ *
+ * This decides whether the header layer re-renders, and it is asked on every
+ * visible-region change glide reports — which inside a group taller than the
+ * viewport is every frame of a scroll, for a set that never moved. Answering by
+ * VALUE rather than by array identity is what keeps those frames free.
+ */
+export function sameHeaders<TGroup>(
+  a: readonly VisibleHeader<TGroup>[],
+  b: readonly VisibleHeader<TGroup>[],
+): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return a.every(
+    (header, i) =>
+      header.displayRow === b[i].displayRow &&
+      header.group === b[i].group &&
+      header.collapsed === b[i].collapsed,
+  );
+}

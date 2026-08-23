@@ -102,8 +102,8 @@ describe("useDisplayModel", () => {
     expect(collapsedSegment?.hasHeader).toBe(true);
     expect(collapsedSegment?.collapsed).toBe(true);
 
-    // And the header is clickable back into an expanded group.
-    act(() => result.current.onHeaderOrCellClicked([0, collapsedSegment!.displayStart]));
+    // And the header takes the group back out of the collapsed set.
+    act(() => result.current.toggleGroup(1));
 
     expect(groupsOf(instance, store.getState()).collapsedGroups).not.toContain(1);
   });
@@ -138,15 +138,16 @@ describe("useDisplayModel", () => {
       { wrapper },
     );
 
-    const header = result.current.model.segments.find((s) => s.group === 1);
-
-    act(() => result.current.onHeaderOrCellClicked([0, header!.displayStart]));
+    act(() => result.current.toggleGroup(1));
 
     // Group 1 opens at data row 3. Rows 0 to 2 keep their index either way.
     expect(instance.carryFromRef.current).toBe(3);
   });
 
-  it("leaves the boundary alone when the click lands on a data row", () => {
+  it("hands one collapse path to the header, the banner and anything else", () => {
+    // `carryFromRef` has to be written by EVERY dispatcher of `toggleCollapse`,
+    // or that collapse silently carries pages measured against the old
+    // positions. One function is how that stays true as callers are added.
     const { instance, wrapper } = makeHarness();
 
     const { result } = renderHook(
@@ -154,9 +155,8 @@ describe("useDisplayModel", () => {
       { wrapper },
     );
 
-    act(() => result.current.onHeaderOrCellClicked([0, 1]));
-
-    expect(instance.carryFromRef.current).toBeNull();
+    expect(typeof result.current.toggleGroup).toBe("function");
+    expect("onHeaderOrCellClicked" in result.current).toBe(false);
   });
 
   it("keeps its rows while a moved window is still loading", () => {

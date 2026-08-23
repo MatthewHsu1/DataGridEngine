@@ -55,4 +55,42 @@ describe("GroupHeaderRow", () => {
 
     expect(screen.getByText("EMEA")).toHaveStyle({ color: "#AB6400" });
   });
+
+  it("paints an opaque background, so the canvas underneath does not show through", () => {
+    // The canvas keeps drawing a row marker on a header's row, and the header
+    // floats over it. Without a fill of its own the checkbox shows through the
+    // group's name.
+    const { container } = render(
+      <GroupHeaderRow label="EMEA" background="#F7F9FA" collapsed={false} onToggle={() => {}} />,
+    );
+
+    expect(container.firstElementChild).toHaveStyle({ backgroundColor: "#F7F9FA" });
+  });
+
+  it("starts the name clear of the row marker the canvas draws", () => {
+    const { container } = render(
+      <GroupHeaderRow label="EMEA" markerWidth={40} collapsed={false} onToggle={() => {}} />,
+    );
+
+    expect(container.firstElementChild).toHaveStyle({ paddingLeft: "40px" });
+  });
+
+  it("counts its padding inside its width, not on top of it", () => {
+    // This package ships no CSS reset — deliberately, so it cannot vandalise
+    // the host's styles — which means `box-sizing` is whatever the browser
+    // defaults to, and that is `content-box`. A full-width row with padding is
+    // then WIDER than the box it sits in, and whatever the host put on the
+    // right hangs off the edge of the grid.
+    const { container } = render(
+      <GroupHeaderRow
+        label="EMEA"
+        markerWidth={40}
+        gutterRight={18}
+        collapsed={false}
+        onToggle={() => {}}
+      />,
+    );
+
+    expect(container.firstElementChild).toHaveStyle({ boxSizing: "border-box" });
+  });
 });

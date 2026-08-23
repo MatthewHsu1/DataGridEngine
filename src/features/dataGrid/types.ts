@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Reducer } from "@reduxjs/toolkit";
 import type { CellRegistry } from "../../lib/grid/cellRegistry";
 import type { RadixColor } from "../../lib/grid/radixBadgePalette";
@@ -178,6 +179,36 @@ export interface GridGrouping<TRow, TGroup> {
    * not an error.
    */
   color?: (g: TGroup) => RadixColor | undefined;
+
+  /**
+   * The host's components for a group, drawn to the RIGHT of the group's name.
+   *
+   * The engine always draws the collapse control and the name itself, so a host
+   * cannot accidentally ship a group that can never be folded. What comes back
+   * from here fills the rest of the row.
+   *
+   * The SAME node is used in two places: the header above the group's rows, and
+   * the banner in the grid's header bar naming the group the user is currently
+   * inside. That is deliberate — one rule, so the pinned copy and the in-grid
+   * copy cannot drift apart.
+   *
+   * It is called during render, once per visible group. Keep it cheap, and keep
+   * it a pure function of the group: it is not the place to start a fetch.
+   */
+  header?: (group: TGroup) => ReactNode;
+
+  /**
+   * How tall a group header row is, in pixels. Defaults to 40.
+   *
+   * The canvas reserves the header's space by this number BEFORE React draws
+   * into it, and nothing measures what React drew. A header taller than this
+   * is clipped; a shorter one leaves a gap. Set it to fit the tallest thing
+   * `header` can return.
+   *
+   * It is a number rather than a measurement on purpose: measuring would mean
+   * draw, measure, resize, draw, on every scroll.
+   */
+  headerHeight?: number;
 }
 
 /**

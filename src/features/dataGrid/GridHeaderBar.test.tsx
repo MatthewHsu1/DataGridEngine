@@ -124,4 +124,13 @@ describe("GridHeaderBar", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(/could not load/i);
   });
+
+  it("holds the slot row's space open while the group is not known yet", () => {
+    // Null means "there will be components here". A row that came and went as
+    // the grid worked out which group it was in changed the bar's height, and
+    // the grid below jumped with it on every scrollbar drag.
+    const { container } = renderQuiet({ group: null, groupSlot: null });
+
+    expect(container.querySelector("[data-dg-group-slot]")).not.toBeNull();
+  });
 });

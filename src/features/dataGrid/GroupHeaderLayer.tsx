@@ -30,6 +30,15 @@ export interface GroupHeaderLayerProps<TGroup> {
   /** The host's components for a group. */
   slot?: (group: TGroup) => ReactNode;
 
+  /** Resolved CSS fill for a header row. See `GroupHeaderRow.background`. */
+  background?: string;
+
+  /** Width of the row marker the canvas draws under every header. */
+  markerWidth?: number;
+
+  /** Room to leave at the right edge, for the grid's vertical scrollbar. */
+  gutterRight?: number;
+
   onToggle: (group: TGroup) => void;
 }
 
@@ -52,7 +61,16 @@ export interface GroupHeaderLayerProps<TGroup> {
  * unselectable.
  */
 function GroupHeaderLayerInner<TGroup>(
-  { headers, label, textColor, slot, onToggle }: GroupHeaderLayerProps<TGroup>,
+  {
+    headers,
+    label,
+    textColor,
+    slot,
+    background,
+    markerWidth,
+    gutterRight,
+    onToggle,
+  }: GroupHeaderLayerProps<TGroup>,
   ref: React.ForwardedRef<GroupHeaderLayerHandle>,
 ) {
   const nodes = useRef(new Map<number, HTMLDivElement>());
@@ -97,6 +115,9 @@ function GroupHeaderLayerInner<TGroup>(
           <GroupHeaderRow
             label={label(h.group)}
             textColor={textColor?.(h.group)}
+            background={background}
+            markerWidth={markerWidth}
+            gutterRight={gutterRight}
             collapsed={h.collapsed}
             onToggle={() => onToggle(h.group)}
           >
