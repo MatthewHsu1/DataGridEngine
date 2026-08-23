@@ -9,8 +9,12 @@ export const columnsPersistenceEffect: GridEffect = (ctx, startListening) => {
 
   if (!save) return;
 
-  const { moveColumn, resizeColumn, toggleColumn } = ctx.actions.columns;
-  const watched = [moveColumn.type, resizeColumn.type, toggleColumn.type];
+  const { moveColumn, resetColumns, resizeColumn, toggleColumn } = ctx.actions.columns;
+
+  // `resetColumns` is watched for the same reason as the other three: it
+  // CHANGES the layout. Leaving it out would let a reset look like it worked
+  // and then hand the thrown-away layout straight back on the next load.
+  const watched = [moveColumn.type, resetColumns.type, resizeColumn.type, toggleColumn.type];
 
   startListening({
     predicate: (action: { type: string }) => watched.includes(action.type),

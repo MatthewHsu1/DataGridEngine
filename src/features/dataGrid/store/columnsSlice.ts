@@ -26,6 +26,20 @@ export function createColumnsSlice(
         if (state.hidden.includes(f)) state.hidden = state.hidden.filter((x) => x !== f);
         else state.hidden.push(f);
       },
+      /**
+       * Back to what the descriptor described: default order, no stored widths,
+       * nothing hidden.
+       *
+       * `defaultOrder` is copied rather than assigned. `moveColumn` splices
+       * `state.order` in place, so handing out the descriptor's own array would
+       * let the first drag after a reset rewrite the descriptor — and every
+       * later reset would then restore the dragged order.
+       */
+      resetColumns(state) {
+        state.order = [...defaultOrder];
+        state.widths = {};
+        state.hidden = [];
+      },
       // Hydration from a load. Merge: only overwrite a field when the loaded value
       // is meaningful, so a partial/empty stored payload can't blank the grid.
       setColumns(state, action: PayloadAction<ColumnsState>) {

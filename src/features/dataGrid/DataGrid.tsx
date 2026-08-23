@@ -8,6 +8,7 @@ import { specFromGridSort } from "./data/sortSpec";
 import { ensureGridPortal } from "./ensurePortal";
 import { useRowSync } from "./data/sync/useRowSync";
 import type { DisplayModel } from "./displayModel";
+import { ColumnPicker } from "./ColumnPicker";
 import { GridHeaderBar } from "./GridHeaderBar";
 import { sortHeaderIcons } from "./headerIcons";
 import { useCellRenderer } from "./hooks/useCellRenderer";
@@ -131,6 +132,7 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
         onRetry={retry}
         onDismissError={dismissError}
         group={null}
+        picker={<ColumnPicker instance={instance} />}
       />
 
       {/*

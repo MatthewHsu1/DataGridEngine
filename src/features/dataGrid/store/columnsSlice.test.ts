@@ -86,4 +86,24 @@ describe("createColumnsSlice", () => {
       expect(await drain(loadColumns())).toEqual([]);
     });
   });
+
+  it("resetColumns puts every column back the way the descriptor described it", () => {
+    const { reducer, actions } = make();
+    let s = reducer(undefined, { type: "@@init" });
+    s = reducer(s, actions.toggleColumn("b"));
+    s = reducer(s, actions.resizeColumn({ field: "a", width: 321 }));
+    s = reducer(s, actions.moveColumn({ from: 0, to: 2 }));
+
+    s = reducer(s, actions.resetColumns());
+
+    expect(s).toEqual({ order: ["a", "b", "c"], widths: {}, hidden: [] });
+  });
+
+  it("resetColumns does not hand back the same array the next reset would mutate", () => {
+    const { reducer, actions } = make();
+    let s = reducer(reducer(undefined, { type: "@@init" }), actions.resetColumns());
+    s = reducer(s, actions.moveColumn({ from: 0, to: 2 }));
+
+    expect(reducer(s, actions.resetColumns()).order).toEqual(["a", "b", "c"]);
+  });
 });
