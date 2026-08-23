@@ -4,7 +4,7 @@ import type { SpriteMap } from "@glideapps/glide-data-grid";
 /**
  * Sort chevrons for the column headers.
  *
- * Glide has no sort state of its own — it hands over `onHeaderClicked` and
+ * Glide has no sort state of its own — it hands over `onHeaderMenuClick` and
  * nothing else — but it does own the header's rendering, so the indicator has
  * to go in through the slot it provides: a named sprite here, referenced by
  * `indicatorIcon` on the column. Drawing over the canvas ourselves would fight

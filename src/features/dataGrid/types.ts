@@ -30,6 +30,16 @@ export interface ColumnDef {
   editable: boolean;
 
   /**
+   * Whether this column's header offers a sort menu. Defaults to true.
+   *
+   * Set it false for a column the SERVER cannot order by: a column the row
+   * carries but the query has no index for, or one the client derives and the
+   * server has never heard of. The sort is sent to the server, so an arrow on
+   * such a column is an arrow onto an error.
+   */
+  sortable?: boolean;
+
+  /**
    * Cell kind. Must match a cell registry entry.
    */
   type: string;
@@ -239,11 +249,6 @@ export interface GridDescriptor<TRow, TGroup, TKey extends string | number = num
      * Left-to-right field order before the user reorders the columns.
      */
     defaultOrder: string[];
-
-    /**
-     * Whether a header click sorts this field. Defaults to "editable columns only".
-     */
-    sortable?: (field: string) => boolean;
   };
 
   /**

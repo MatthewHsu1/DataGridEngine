@@ -1,8 +1,9 @@
 // src/features/dataGrid/hooks/useGridColumns.ts
-import type { GridColumn } from "@glideapps/glide-data-grid";
+import { type GridColumn, GridColumnMenuIcon } from "@glideapps/glide-data-grid";
 import { useCallback, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { SORT_ASC_ICON, SORT_DESC_ICON } from "../headerIcons";
+import { sortablePredicate } from "../sortable";
 import type { GridInstance } from "../types";
 import { useGridDispatch } from "../useGridDispatch";
 
@@ -28,6 +29,11 @@ export function useGridColumns<TRow extends object, TGroup, TKey extends string 
 
   const visibleFields = useMemo(() => order.filter((f) => !hidden.includes(f)), [order, hidden]);
 
+  const sortable = useMemo(
+    () => sortablePredicate(defs),
+    [defs],
+  );
+
   const columns: GridColumn[] = useMemo(
     () =>
       visibleFields.map((f) => ({
@@ -36,8 +42,14 @@ export function useGridColumns<TRow extends object, TGroup, TKey extends string 
         width: widths[f] ?? defs[f].defaultWidth,
         indicatorIcon:
           sort?.field === f ? (sort.dir === "asc" ? SORT_ASC_ICON : SORT_DESC_ICON) : undefined,
+
+        // The arrow that opens the sort menu. Only sortable columns draw one,
+        // so an arrow never opens onto a menu with nothing to offer — see
+        // `sortable.ts` and `hooks/useColumnSortMenu.tsx`.
+        hasMenu: sortable(f),
+        menuIcon: GridColumnMenuIcon.Triangle,
       })),
-    [visibleFields, widths, defs, sort],
+    [visibleFields, widths, defs, sort, sortable],
   );
 
   const onColumnResize = useCallback(

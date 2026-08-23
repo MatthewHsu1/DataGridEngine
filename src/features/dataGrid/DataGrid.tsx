@@ -11,6 +11,7 @@ import type { DisplayModel } from "./displayModel";
 import { GroupHeaderLayer } from "./GroupHeaderLayer";
 import { COLUMN_HEADER_HEIGHT } from "./rowHeights";
 import { ColumnPicker } from "./ColumnPicker";
+import { useColumnSortMenu } from "./hooks/useColumnSortMenu";
 import { GridHeaderBar } from "./GridHeaderBar";
 import { sortHeaderIcons } from "./headerIcons";
 import { useCellRenderer } from "./hooks/useCellRenderer";
@@ -18,7 +19,6 @@ import { useDisplayModel } from "./hooks/useDisplayModel";
 import { useGridColumns } from "./hooks/useGridColumns";
 import { useGridData } from "./hooks/useGridData";
 import { useGridSelection } from "./hooks/useGridSelection";
-import { useGridSort } from "./hooks/useGridSort";
 import { useGroupBanner } from "./hooks/useGroupBanner";
 import { useGroupHeaders } from "./hooks/useGroupHeaders";
 import { useRepaintRows } from "./hooks/useRepaintRows";
@@ -140,8 +140,8 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
 
   const { gridSelection, onGridSelectionChange } = useGridSelection(instance, model, rowAt, store);
 
-  const { onHeaderClicked } = useGridSort(instance, visibleFields);
-  
+  const { onHeaderMenuClick, menu: sortMenu } = useColumnSortMenu(instance, visibleFields);
+
   const { getCellContent, onCellEdited } = useCellRenderer(instance, {
     model,
     visibleFields,
@@ -222,7 +222,7 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
           rowMarkers={{ kind: "checkbox-visible", width: ROW_MARKER_WIDTH }}
           gridSelection={gridSelection}
           onGridSelectionChange={onGridSelectionChange}
-          onHeaderClicked={onHeaderClicked}
+          onHeaderMenuClick={onHeaderMenuClick}
           width="100%"
           height="100%"
           smoothScrollX
@@ -247,6 +247,13 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
             onToggle={toggleGroup}
           />
         )}
+
+        {/*
+          The sort menu, parked over the header arrow the user pressed. It
+          anchors in viewport coordinates, so it does not care that it is
+          rendered here rather than beside the canvas. See `ColumnHeaderMenu`.
+        */}
+        {sortMenu}
       </div>
     </div>
   );

@@ -71,10 +71,6 @@ export const testGridDescriptor: GridDescriptor<TestRow, number, number> = {
       "updatedAt",
       "active",
     ],
-    // The default is "editable columns only", which would leave `id`, `sector`,
-    // `region`, and the derived `value` unsortable. Sorting a read-only column
-    // is a thing this page exists to exercise.
-    sortable: () => true,
   },
   grouping: {
     field: "region",
