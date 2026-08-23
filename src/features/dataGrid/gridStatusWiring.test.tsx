@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { Provider, useSelector } from "react-redux";
 import { describe, expect, it, vi } from "vitest";
+import { lightGridTheme } from "../../theme/gridThemes";
 import { buildFlatModel } from "./displayModel";
 import { GridStatusBar } from "./GridStatusBar";
 import { useCellRenderer } from "./hooks/useCellRenderer";
@@ -126,6 +127,7 @@ function EditBannerUnderTest({ instance }: { instance: GridInstance<EditRow, num
     model: buildFlatModel(total),
     visibleFields: ["name"],
     columnCount: 1,
+    theme: lightGridTheme,
     rowAt,
     isPending,
     overlay,

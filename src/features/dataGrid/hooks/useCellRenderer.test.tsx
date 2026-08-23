@@ -1,5 +1,10 @@
 // src/features/dataGrid/hooks/useCellRenderer.test.tsx
-import { GridCellKind, type EditableGridCell, type GridCell } from "@glideapps/glide-data-grid";
+import {
+  GridCellKind,
+  type EditableGridCell,
+  type GridCell,
+  type Theme,
+} from "@glideapps/glide-data-grid";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -7,9 +12,9 @@ import { Provider } from "react-redux";
 import { describe, expect, it, vi } from "vitest";
 import { createEditOverlay } from "../data/editOverlay";
 import { createRowStore, MAX_LOADED_PAGES } from "../data/rowStore";
-import { buildFlatModel } from "../displayModel";
+import { buildDisplayModel, buildFlatModel, type DisplayModel } from "../displayModel";
 import { createEditsSlice } from "../store/editsSlice";
-import type { GridInstance } from "../types";
+import type { GridGrouping, GridInstance } from "../types";
 import { useCellRenderer } from "./useCellRenderer";
 
 interface Row {
@@ -19,6 +24,9 @@ interface Row {
 
 const ROW_A: Row = { id: 1, name: "a" };
 const ROW_B: Row = { id: 2, name: "b" };
+
+/** Stands in for whichever theme the appearance watcher picked. */
+const THEME: Partial<Theme> = { bgHeader: "#F7F9FA", textHeader: "#4A4A52" };
 
 const typed: EditableGridCell = {
   kind: GridCellKind.Text,
@@ -33,9 +41,20 @@ interface HarnessOptions {
 
   /** A theme the cell type itself supplies, independent of the pending grey. */
   cellTheme?: Record<string, string>;
+
+  /** Grouping config, when the test needs the grid to draw header rows. */
+  grouping?: GridGrouping<Row, string>;
+
+  /** The grid theme, so a test can assert the header follows the appearance. */
+  theme?: Partial<Theme>;
 }
 
-function makeHarness({ rejectSave = false, cellTheme }: HarnessOptions = {}) {
+function makeHarness({
+  rejectSave = false,
+  cellTheme,
+  grouping,
+  theme = THEME,
+}: HarnessOptions = {}) {
   // Which keys reject their save. Per key and mutable, so one harness can fail
   // one cell's save and accept another's — the sequence the cell identity on
   // `lastError` exists for.
@@ -84,6 +103,7 @@ function makeHarness({ rejectSave = false, cellTheme }: HarnessOptions = {}) {
         },
       },
       api: { updateRow },
+      ...(grouping ? { grouping } : {}),
       cells: {
         makeCell: (_type: string, raw: unknown): GridCell => ({
           kind: GridCellKind.Text,
@@ -95,18 +115,34 @@ function makeHarness({ rejectSave = false, cellTheme }: HarnessOptions = {}) {
       },
     },
     actions: edits.actions,
-  } as unknown as GridInstance<Row, never, number>;
+  } as unknown as GridInstance<Row, string, number>;
 
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>{children}</Provider>
   );
 
+  // With grouping, both rows sit under one header at display row 0, so the data
+  // rows move down to display rows 1 and 2.
+  const model: DisplayModel<string> = grouping
+    ? buildDisplayModel(
+        {
+          boundaries: [{ dataIndex: 0, group: "APAC" }],
+          leadingGroup: null,
+          total: 2,
+          collapsedGroups: [],
+          discoveredGroups: ["APAC"],
+        },
+        grouping.order,
+      )
+    : buildFlatModel(2);
+
   const { result } = renderHook(
     () =>
       useCellRenderer(instance, {
-        model: buildFlatModel(2),
+        model,
         visibleFields: ["name"],
         columnCount: 1,
+        theme,
         rowAt: (dataIndex: number) => {
           const row = rowStore.getRow(dataIndex);
 
@@ -350,5 +386,43 @@ describe("useCellRenderer", () => {
     result.current.onCellEdited([0, 1], typed);
 
     expect(updateRow).not.toHaveBeenCalled();
+  });
+
+  // What `groupHeaderCell` does with a theme and a colour is its own suite's
+  // job. These two only prove the wiring reaches it, because nothing else does:
+  // the theme is an argument the hook could silently drop, and `grouping.color`
+  // is optional, so a missing call would look exactly like a grid that set none.
+  it("draws a group header from the theme it was handed", () => {
+    const { result } = makeHarness({
+      grouping: {
+        field: "sector",
+        of: () => "APAC",
+        order: () => 0,
+        label: (g) => g,
+      },
+      theme: { bgHeader: "#161719", textHeader: "#A0A5AD" },
+    });
+
+    const header = result.current.getCellContent([0, 0]);
+
+    expect(header.themeOverride).toMatchObject({ bgCell: "#161719", textDark: "#A0A5AD" });
+  });
+
+  it("asks the grouping for the header's colour, passing the group it is drawing", () => {
+    const color = vi.fn(() => undefined);
+
+    const { result } = makeHarness({
+      grouping: {
+        field: "sector",
+        of: () => "APAC",
+        order: () => 0,
+        label: (g) => g,
+        color,
+      },
+    });
+
+    result.current.getCellContent([0, 0]);
+
+    expect(color).toHaveBeenCalledWith("APAC");
   });
 });

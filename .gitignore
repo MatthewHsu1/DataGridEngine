@@ -8,3 +8,6 @@ coverage/
 .env.*
 !.env.example
 docs
+
+# Serena LSP cache / project config
+.serena/

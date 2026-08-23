@@ -30,7 +30,7 @@ async function gate(): Promise<Response | null> {
   return null;
 }
 
-/** The collapsed sectors, as a comma-separated query parameter. */
+/** The collapsed regions, as a comma-separated query parameter. */
 function readCollapsed(url: URL): string[] {
   return (url.searchParams.get("collapsed") ?? "").split(",").filter(Boolean);
 }

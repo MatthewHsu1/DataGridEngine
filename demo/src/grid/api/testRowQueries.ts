@@ -11,7 +11,7 @@ const PATH = "/api/test-rows";
  * sorted: the client drops an undefined param, and the handler treats a missing
  * `sortField` as natural order.
  */
-export async function fetchTestRows(p: FetchRowsParams<string>): Promise<TestRow[]> {
+export async function fetchTestRows(p: FetchRowsParams<number>): Promise<TestRow[]> {
   return apiClient.get<TestRow[]>(PATH, {
     params: {
       offset: p.offset,
@@ -27,7 +27,7 @@ export async function fetchTestRows(p: FetchRowsParams<string>): Promise<TestRow
 
 /** The total under the current collapse state. */
 export async function fetchTestRowCount(p: {
-  collapsedGroups: string[];
+  collapsedGroups: number[];
   signal?: AbortSignal;
 }): Promise<number> {
   const { count } = await apiClient.get<{ count: number }>(`${PATH}/count`, {

@@ -39,7 +39,7 @@ const dateCell = createDateCell({ kind: "test-date", nullable: true });
 // Colors come from RADIX_BADGE_SCALES in lib/grid/radixBadgePalette.ts. That
 // list is the whole `RadixColor` union — "blue", "purple", and "gray" are NOT
 // in it, and each scale must also be imported in theme/radixStyles.ts.
-const regionCell = createEnumCell({
+export const regionCell = createEnumCell({
   kind: "test-region",
   nullable: false,
   options: [

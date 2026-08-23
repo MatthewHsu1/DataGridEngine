@@ -10,6 +10,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useRef, type ReactNode } from "react";
 import { Provider, useSelector } from "react-redux";
 import { describe, expect, it, vi } from "vitest";
+import { lightGridTheme } from "../../theme/gridThemes";
 import { specFromGridSort } from "./data/sortSpec";
 import { PUSH_BUFFER_MS, useRowSync } from "./data/sync/useRowSync";
 import { displayToData, type DisplayModel } from "./displayModel";
@@ -100,6 +101,7 @@ function useComposedGrid(
     model,
     visibleFields: VISIBLE_FIELDS,
     columnCount: VISIBLE_FIELDS.length,
+    theme: lightGridTheme,
     rowAt,
     isPending,
     overlay,

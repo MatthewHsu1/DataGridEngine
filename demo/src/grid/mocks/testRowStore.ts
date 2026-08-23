@@ -1,5 +1,5 @@
 import { compareBySpec, type SortSpec } from "@matthewhsu1/datagrid";
-import { SECTORS, type TestRow } from "../api/types";
+import type { TestRow } from "../api/types";
 import { DEFAULT_ROW_COUNT, DEFAULT_SEED, generateRows } from "./generateRows";
 
 /**
@@ -18,7 +18,7 @@ export interface SliceQuery {
   limit: number;
 
   /**
-   * The user's column sort, applied inside a sector. Null means natural order.
+   * The user's column sort, applied inside a region. Null means natural order.
    */
   sort: SortSpec | null;
 
@@ -72,8 +72,6 @@ export interface TestRowStore {
  */
 const MAX_CACHED_ORDERS = 3;
 
-const SECTOR_INDEX = new Map(SECTORS.map((sector, index) => [sector as string, index]));
-
 /** Rounds to two decimals, matching the generator's currency values. */
 function money(value: number): number {
   return Math.round(value * 100) / 100;
@@ -108,19 +106,21 @@ export function createTestRowStore(
 
   const views = new Map<string, TestRow[]>();
 
-  const sectorRank = (row: TestRow): number => SECTOR_INDEX.get(row.sector) ?? SECTORS.length;
-
   /**
-   * The one ordering rule: sector first, then the user's sort, then the id.
+   * The one ordering rule: region first, then the user's sort, then the id.
    * `compareBySpec` is the same comparator the client live query mirrors — a
    * disagreement between the two shows up as rows that jump under a still
    * viewport.
+   *
+   * The region code is its own rank, and it is the same number `testGrid`'s
+   * `grouping.order` returns. That agreement is the contract: headers are
+   * placed by `order`, rows are placed by this.
    */
   const compare = (a: TestRow, b: TestRow, sort: SortSpec | null): number => {
-    const bySector = sectorRank(a) - sectorRank(b);
+    const byRegion = a.region - b.region;
 
-    if (bySector !== 0) {
-      return bySector;
+    if (byRegion !== 0) {
+      return byRegion;
     }
 
     if (!sort) {
@@ -138,8 +138,11 @@ export function createTestRowStore(
       return cached;
     }
 
+    // The collapsed groups arrive as query-parameter strings, so the row's
+    // numeric region is compared as one.
     const hidden = new Set(collapsed);
-    const visible = hidden.size === 0 ? [...rows] : rows.filter((r) => !hidden.has(r.sector));
+    const visible =
+      hidden.size === 0 ? [...rows] : rows.filter((r) => !hidden.has(String(r.region)));
 
     visible.sort((a, b) => compare(a, b, sort));
     views.set(key, visible);
@@ -177,7 +180,16 @@ export function createTestRowStore(
         return undefined;
       }
 
-      const next: TestRow = { ...current, ...changes, id: current.id, sector: current.sector };
+      // `region` is pinned alongside `id`: it is the group field, and a row that
+      // changed group would have to MOVE, which only a re-fetch can do. The
+      // column is read-only in the descriptor, so nothing legitimate sends one.
+      const next: TestRow = {
+        ...current,
+        ...changes,
+        id: current.id,
+        sector: current.sector,
+        region: current.region,
+      };
       next.value = money(next.quantity * next.price);
 
       if (changes.updatedAt === undefined) {
@@ -189,7 +201,7 @@ export function createTestRowStore(
       byId.set(id, next);
 
       // Every cached view holds the OLD row object, and an edit can also move
-      // the row inside its sector. Rebuilding is cheaper to reason about than
+      // the row inside its region. Rebuilding is cheaper to reason about than
       // patching each view in place, and an edit is rare next to a scroll.
       views.clear();
 

@@ -98,6 +98,7 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
     model,
     visibleFields,
     columnCount: columns.length,
+    theme: gridTheme,
     rowAt,
     isPending,
     overlay,

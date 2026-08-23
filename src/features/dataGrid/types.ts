@@ -1,5 +1,6 @@
 import type { Reducer } from "@reduxjs/toolkit";
 import type { CellRegistry } from "../../lib/grid/cellRegistry";
+import type { RadixColor } from "../../lib/grid/radixBadgePalette";
 import type { RowStore } from "./data/rowStore";
 import type { SortSpec } from "./data/sortSpec";
 
@@ -160,6 +161,23 @@ export interface GridGrouping<TRow, TGroup> {
    * Header text for a group.
    */
   label: (g: TGroup) => string;
+
+  /**
+   * Text color of a group's header row, named as a Radix scale.
+   *
+   * The point is to make the header agree with the column it groups by: when
+   * that column is an enum cell, return `enumCell.colorOf(g)` and the header
+   * text lands on the same scale as the badge in the cell and the badge in the
+   * editor's dropdown. The engine resolves the scale to a concrete color
+   * through the same CSS vars the badges read, so it follows the appearance
+   * without being told about it.
+   *
+   * Answering `undefined` — for the whole grid by omitting this, or for one
+   * group by returning it — falls the header back to the theme's header text
+   * color. That is the right answer for a group with no color of its own; it is
+   * not an error.
+   */
+  color?: (g: TGroup) => RadixColor | undefined;
 }
 
 /**

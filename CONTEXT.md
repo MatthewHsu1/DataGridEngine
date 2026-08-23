@@ -70,6 +70,9 @@ header belongs.
 **Group** — the value rows are bucketed by. Always a primitive: the engine
 compares groups by identity.
 
+**Group header** — the full-width row that names a group and sits above that
+group's rows. It occupies a display row and holds no data index.
+
 **Collapsed group** — a group whose rows the server is told to leave out. A
 collapse changes the total, so it is part of the view's identity.
 

@@ -4,22 +4,34 @@ import {
   type EditableGridCell,
   type GridCell,
   type Item,
+  type Theme,
 } from "@glideapps/glide-data-grid";
 import { useCallback, useRef } from "react";
 import { useEditHighlight } from "../../../lib/grid/useEditHighlight";
 import type { EditOverlay } from "../data/editOverlay";
 import type { RowStore } from "../data/rowStore";
 import { displayToData, type DisplayModel } from "../displayModel";
+import { groupHeaderCell } from "../groupHeaderCell";
 import type { GridDescriptor, GridInstance } from "../types";
 import { useGridDispatch } from "../useGridDispatch";
 
-const GROUP_HEADER_THEME = { bgCell: "#eef2f7", textDark: "#1d6fb8" };
 const PENDING_TEXT = "#8a8a8a";
 
 interface Args<TRow extends object, TGroup, TKey extends string | number> {
   model: DisplayModel<TGroup>;
   visibleFields: string[];
   columnCount: number;
+
+  /**
+   * The theme the grid is drawing with, i.e. the one the appearance watcher
+   * chose. Group headers colour themselves from it.
+   *
+   * It is an argument and not a hook call because it must sit in the
+   * `getCellContent` dependency list: an appearance flip changes nothing else
+   * this callback reads, so without it the memoised callback would keep handing
+   * glide the previous appearance's header colours.
+   */
+  theme: Partial<Theme>;
 
   /** The row at a data index, with any in-flight edit already laid over it. */
   rowAt: (dataIndex: number) => TRow | undefined;
@@ -69,18 +81,6 @@ function extractEditedValue(newValue: EditableGridCell): unknown {
   }
 
   return "data" in newValue ? (newValue as { data: unknown }).data : undefined;
-}
-
-/** The full-width row that names a group and spans every column. */
-function groupHeaderCell(label: string, columnCount: number): GridCell {
-  return {
-    kind: GridCellKind.Text,
-    data: label,
-    displayData: `▾ ${label}`,
-    allowOverlay: false,
-    span: [0, Math.max(0, columnCount - 1)],
-    themeOverride: { ...GROUP_HEADER_THEME },
-  };
 }
 
 /**
@@ -198,6 +198,7 @@ export function useCellRenderer<TRow extends object, TGroup, TKey extends string
     model,
     visibleFields,
     columnCount,
+    theme,
     rowAt,
     isPending,
     overlay,
@@ -225,9 +226,10 @@ export function useCellRenderer<TRow extends object, TGroup, TKey extends string
       const cell = displayToData(model, displayRow);
 
       if (cell.kind === "header") {
-        const label = descriptor.grouping?.label(cell.group) ?? "";
+        const grouping = descriptor.grouping;
+        const label = grouping?.label(cell.group) ?? "";
 
-        return groupHeaderCell(label, columnCount);
+        return groupHeaderCell(label, columnCount, theme, grouping?.color?.(cell.group));
       }
 
       const row = rowAt(cell.dataIndex);
@@ -251,7 +253,7 @@ export function useCellRenderer<TRow extends object, TGroup, TKey extends string
 
       return isPending(descriptor.rowKey(row)) ? withPendingTint(content) : content;
     },
-    [model, visibleFields, columnCount, rowAt, isPending, withHighlight, descriptor, defs],
+    [model, visibleFields, columnCount, theme, rowAt, isPending, withHighlight, descriptor, defs],
   );
 
   const onCellEdited = useCallback(
