@@ -215,6 +215,7 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
           rowHeight={rowHeight}
           headerHeight={COLUMN_HEADER_HEIGHT}
           getCellContent={getCellContent}
+          getCellsForSelection={true}
           onCellEdited={onCellEdited}
           onVisibleRegionChanged={onVisibleRegionChanged}
           onColumnResize={onColumnResize}
