@@ -1,7 +1,7 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -14,10 +14,6 @@ const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   root: here("."),
-  // The package's stylesheet is GENERATED from `src/datagrid.src.css`, and the
-  // alias below points the demo at that source rather than at a built file.
-  // Tailwind therefore has to run here too — which is the point: the demo
-  // fails to style itself if the source stylesheet stops compiling.
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: [
