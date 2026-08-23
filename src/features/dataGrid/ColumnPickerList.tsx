@@ -1,3 +1,6 @@
+import { Badge, Button, Checkbox, Flex, Text } from "@radix-ui/themes";
+import { useId } from "react";
+
 export interface PickerColumn {
   field: string;
   title: string;
@@ -19,10 +22,8 @@ export interface PickerColumn {
  * second way to do one thing is a second set of edge cases — a drag here and a
  * drag there disagreeing about where a column went.
  *
- * Split out of the popover it lives in so it can be tested without one. A
- * popover needs `ResizeObserver`, which this project's jsdom does not carry;
- * every decision the picker makes lives here instead, where a plain render
- * reaches it.
+ * Split out of the popover it lives in so it can be tested without one; every
+ * decision the picker makes is here, where a plain render reaches it.
  */
 export function ColumnPickerList({
   columns,
@@ -33,43 +34,53 @@ export function ColumnPickerList({
   onToggle: (field: string) => void;
   onReset: () => void;
 }) {
+  // Scoped per mount rather than per field. Field names are unique within a
+  // grid but not across two grids on one page, and `aria-labelledby` resolves
+  // against the whole document.
+  const scope = useId();
+
   return (
-    <div className="dg:flex dg:min-w-56 dg:flex-col">
-      <div className="dg:flex dg:items-center dg:justify-between dg:gap-4 dg:px-2 dg:pb-1">
-        <span className="dg:text-xs dg:font-bold dg:text-[var(--gray-12,#1c2024)]">Columns</span>
+    <Flex direction="column" minWidth="13rem">
+      <Flex align="center" justify="between" gap="4" px="1" pb="1">
+        <Text size="1" weight="bold">
+          Columns
+        </Text>
 
-        <button
-          type="button"
-          onClick={onReset}
-          className="dg:cursor-pointer dg:rounded dg:border-none dg:bg-transparent dg:px-2 dg:py-1 dg:text-xs dg:font-medium dg:text-[var(--accent-11,#5753c6)] dg:hover:bg-[var(--gray-a3,rgba(0,0,0,0.06))]"
-        >
+        <Button size="1" variant="ghost" onClick={onReset}>
           Reset
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
-      <div className="dg:flex dg:flex-col">
-        {columns.map((c) => (
-          <label
-            key={c.field}
-            className="dg:flex dg:cursor-pointer dg:items-center dg:gap-2 dg:rounded dg:px-2 dg:py-1.5 dg:hover:bg-[var(--gray-a3,rgba(0,0,0,0.06))]"
-          >
-            <input
-              type="checkbox"
-              checked={!c.hidden}
-              disabled={c.locked === true}
-              onChange={() => onToggle(c.field)}
-            />
+      <Flex direction="column">
+        {columns.map((c) => {
+          const titleId = `${scope}-${c.field}-title`;
+          const lockId = `${scope}-${c.field}-lock`;
 
-            <span className="dg:text-sm dg:text-[var(--gray-12,#1c2024)]">{c.title}</span>
+          return (
+            <Text key={c.field} as="label" size="2">
+              <Flex align="center" gap="2" px="1" py="1">
+                <Checkbox
+                  size="1"
+                  checked={!c.hidden}
+                  disabled={c.locked === true}
+                  onCheckedChange={() => onToggle(c.field)}
+                  // The name has to carry the lock reason as well as the title,
+                  // so the badge below is not the only place it is written.
+                  aria-labelledby={c.locked === true ? `${titleId} ${lockId}` : titleId}
+                />
 
-            {c.locked === true && (
-              <span className="dg:ml-auto dg:rounded-full dg:bg-[var(--gray-3,#f0f0f3)] dg:px-1.5 dg:text-[10px] dg:font-semibold dg:text-[var(--gray-11,#8b8d98)]">
-                Grouped by
-              </span>
-            )}
-          </label>
-        ))}
-      </div>
-    </div>
+                <span id={titleId}>{c.title}</span>
+
+                {c.locked === true && (
+                  <Badge id={lockId} size="1" color="gray" variant="soft" ml="auto">
+                    Grouped by
+                  </Badge>
+                )}
+              </Flex>
+            </Text>
+          );
+        })}
+      </Flex>
+    </Flex>
   );
 }

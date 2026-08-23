@@ -66,4 +66,13 @@ describe("ColumnPickerList", () => {
 
     expect(onReset).toHaveBeenCalledTimes(1);
   });
+
+  it("toggles from the row's text, not just the box itself", async () => {
+    const onToggle = vi.fn();
+    renderList({ onToggle });
+
+    await userEvent.click(screen.getByText("Name"));
+
+    expect(onToggle).toHaveBeenCalledWith("name");
+  });
 });
