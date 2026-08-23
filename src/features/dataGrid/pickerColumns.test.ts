@@ -28,17 +28,17 @@ describe("pickerColumns", () => {
     expect(rows.find((r) => r.field === "id")?.hidden).toBe(false);
   });
 
-  it("locks the column the grid groups by", () => {
+  it("marks the column the grid groups by", () => {
     const rows = pickerColumns(DEFS, ORDER, [], "region");
 
-    expect(rows.find((r) => r.field === "region")?.locked).toBe(true);
-    expect(rows.find((r) => r.field === "id")?.locked).toBe(false);
+    expect(rows.find((r) => r.field === "region")?.grouped).toBe(true);
+    expect(rows.find((r) => r.field === "id")?.grouped).toBe(false);
   });
 
-  it("locks nothing in a grid that is not grouping", () => {
+  it("marks nothing in a grid that is not grouping", () => {
     const rows = pickerColumns(DEFS, ORDER, [], undefined);
 
-    expect(rows.some((r) => r.locked)).toBe(false);
+    expect(rows.some((r) => r.grouped)).toBe(false);
   });
 
   it("skips an ordered field the descriptor never defined", () => {

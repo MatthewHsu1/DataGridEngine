@@ -9,10 +9,9 @@ export interface PickerColumn {
   hidden: boolean;
 
   /**
-   * The column cannot be hidden. Set for the column the grid groups by: the
-   * banner would otherwise name a group with no column anywhere to point at.
+   * The grid groups by this column.
    */
-  locked?: boolean;
+  grouped?: boolean;
 }
 
 /**
@@ -54,7 +53,7 @@ export function ColumnPickerList({
       <Flex direction="column">
         {columns.map((c) => {
           const titleId = `${scope}-${c.field}-title`;
-          const lockId = `${scope}-${c.field}-lock`;
+          const groupId = `${scope}-${c.field}-grouped`;
 
           return (
             <Text key={c.field} as="label" size="2">
@@ -62,17 +61,16 @@ export function ColumnPickerList({
                 <Checkbox
                   size="1"
                   checked={!c.hidden}
-                  disabled={c.locked === true}
                   onCheckedChange={() => onToggle(c.field)}
-                  // The name has to carry the lock reason as well as the title,
-                  // so the badge below is not the only place it is written.
-                  aria-labelledby={c.locked === true ? `${titleId} ${lockId}` : titleId}
+                  // The name has to carry the grouping as well as the title, so
+                  // the badge below is not the only place it is written.
+                  aria-labelledby={c.grouped === true ? `${titleId} ${groupId}` : titleId}
                 />
 
                 <span id={titleId}>{c.title}</span>
 
-                {c.locked === true && (
-                  <Badge id={lockId} size="1" color="gray" variant="soft" ml="auto">
+                {c.grouped === true && (
+                  <Badge id={groupId} size="1" color="gray" variant="soft" ml="auto">
                     Grouped by
                   </Badge>
                 )}

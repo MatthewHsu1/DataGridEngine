@@ -6,7 +6,7 @@ import { ColumnPickerList } from "./ColumnPickerList";
 const COLUMNS = [
   { field: "id", title: "ID", hidden: false },
   { field: "name", title: "Name", hidden: false },
-  { field: "region", title: "Region", hidden: false, locked: true },
+  { field: "region", title: "Region", hidden: false, grouped: true },
   { field: "contact", title: "Contact", hidden: true },
 ];
 
@@ -40,19 +40,20 @@ describe("ColumnPickerList", () => {
     expect(onToggle).toHaveBeenCalledWith("contact");
   });
 
-  it("will not let the grouped column be hidden", async () => {
-    // The banner would then name a group with no column anywhere to point at.
+  it("lets the grouped column be hidden like any other", async () => {
+    // The group banner names the value on its own, so the column it came from
+    // is the one a user is most likely to want out of the way.
     const onToggle = vi.fn();
     renderList({ onToggle });
 
     const region = screen.getByRole("checkbox", { name: /region/i });
-    expect(region).toBeDisabled();
+    expect(region).toBeEnabled();
 
     await userEvent.click(region);
-    expect(onToggle).not.toHaveBeenCalled();
+    expect(onToggle).toHaveBeenCalledWith("region");
   });
 
-  it("says why the grouped column cannot be hidden", () => {
+  it("says which column the grid groups by", () => {
     renderList();
 
     expect(screen.getByRole("checkbox", { name: /grouped by/i })).toBeInTheDocument();

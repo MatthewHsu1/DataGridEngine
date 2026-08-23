@@ -21,6 +21,6 @@ export function pickerColumns(
       field,
       title: defs[field].title,
       hidden: hidden.includes(field),
-      locked: field === groupField,
+      grouped: field === groupField,
     }));
 }
