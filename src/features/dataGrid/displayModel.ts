@@ -434,3 +434,72 @@ export function dataRangeInDisplayRange<TGroup>(
 
   return { min, max };
 }
+
+/** A group header the viewport can currently see. */
+export interface VisibleHeader<TGroup> {
+  displayRow: number;
+  group: TGroup;
+  collapsed: boolean;
+}
+
+/**
+ * Every group header inside a display range, in the order they are drawn.
+ *
+ * This is what the header layer renders. It reads SEGMENTS rather than walking
+ * the range row by row, so a viewport 40 rows tall costs one pass over the
+ * groups rather than 40 lookups — and the cost does not grow with the row
+ * height the host chose.
+ *
+ * A collapsed group is included. Its header is the only way back to its rows,
+ * so a layer that left it out would strand them.
+ */
+export function headersInDisplayRange<TGroup>(
+  model: DisplayModel<TGroup>,
+  fromDisplay: number,
+  toDisplay: number,
+): VisibleHeader<TGroup>[] {
+  const rangeStart = Math.max(0, Math.min(fromDisplay, toDisplay));
+  const rangeEnd = Math.max(fromDisplay, toDisplay);
+
+  return model.segments
+    .filter(
+      (segment) =>
+        segment.hasHeader &&
+        segment.group !== null &&
+        segment.displayStart >= rangeStart &&
+        segment.displayStart <= rangeEnd,
+    )
+    .map((segment) => ({
+      displayRow: segment.displayStart,
+      group: segment.group as TGroup,
+      collapsed: segment.collapsed,
+    }))
+    .sort((a, b) => a.displayRow - b.displayRow);
+}
+
+/**
+ * The group a display row belongs to, header row and data rows alike.
+ *
+ * The banner asks this about the FIRST visible row, which is what makes it name
+ * the group the user is inside rather than the last header they scrolled past —
+ * the two differ for every group taller than the viewport, which is most of
+ * them.
+ *
+ * Answers null for a flat grid, for the leading segment of a moved window
+ * (whose group is not known yet), and for a row past the end. All three mean
+ * the same thing to a caller: there is no group to name here.
+ */
+export function groupAtDisplayRow<TGroup>(
+  model: DisplayModel<TGroup>,
+  displayRow: number,
+): TGroup | null {
+  for (const segment of model.segments) {
+    const end = segment.displayStart + headerRowCount(segment) + segment.dataCount;
+
+    if (displayRow >= segment.displayStart && displayRow < end) {
+      return segment.group;
+    }
+  }
+
+  return null;
+}

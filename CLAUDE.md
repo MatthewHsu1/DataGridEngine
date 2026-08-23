@@ -16,7 +16,7 @@ no extra bytes by using more of it.
 
 - **Canvas cells.** Cells inside `@glideapps/glide-data-grid` are painted on a
   `<canvas>`, so no DOM component reaches them. Draw those by hand. Their
-  *editors* are real DOM and stay Radix.
+  _editors_ are real DOM and stay Radix.
 - **Third-party pickers.** `react-day-picker`, `react-number-format`, and
   `react-phone-number-input` fill gaps Radix has no component for. Wrap them in
   Radix layout and Radix tokens so they match.

@@ -7,6 +7,8 @@ import {
   displayRowsOfData,
   displayToData,
   firstAffectedDataIndex,
+  groupAtDisplayRow,
+  headersInDisplayRange,
   type Boundary,
 } from "./displayModel";
 
@@ -397,5 +399,86 @@ describe("firstAffectedDataIndex", () => {
     );
 
     expect(firstAffectedDataIndex(model, 0)).toBe(0);
+  });
+});
+
+/** header(0) d d header(1) d d header(2) d d  =>  9 display rows. */
+const THREE_GROUPS = buildDisplayModel(
+  {
+    boundaries: [
+      { dataIndex: 0, group: 0 },
+      { dataIndex: 2, group: 1 },
+      { dataIndex: 4, group: 2 },
+    ],
+    leadingGroup: null,
+    total: 6,
+    collapsedGroups: [],
+    discoveredGroups: [0, 1, 2],
+  },
+  order,
+);
+
+describe("headersInDisplayRange", () => {
+  it("reports each header on screen, and where it sits", () => {
+    expect(headersInDisplayRange(THREE_GROUPS, 0, 8)).toEqual([
+      { displayRow: 0, group: 0, collapsed: false },
+      { displayRow: 3, group: 1, collapsed: false },
+      { displayRow: 6, group: 2, collapsed: false },
+    ]);
+  });
+
+  it("leaves out the headers the viewport has scrolled past", () => {
+    expect(headersInDisplayRange(THREE_GROUPS, 4, 8).map((h) => h.group)).toEqual([2]);
+  });
+
+  it("includes a header the range only just reaches", () => {
+    expect(headersInDisplayRange(THREE_GROUPS, 3, 3).map((h) => h.group)).toEqual([1]);
+  });
+
+  it("reads the range whichever way round it is given", () => {
+    expect(headersInDisplayRange(THREE_GROUPS, 8, 4).map((h) => h.group)).toEqual([2]);
+  });
+
+  it("finds nothing in a flat grid, which draws no headers at all", () => {
+    expect(headersInDisplayRange(buildFlatModel(50), 0, 20)).toEqual([]);
+  });
+
+  it("reports a collapsed group's header, because it is the only way back", () => {
+    const m = buildDisplayModel(
+      {
+        boundaries: [{ dataIndex: 0, group: 0 }],
+        leadingGroup: null,
+        total: 2,
+        collapsedGroups: [1],
+        discoveredGroups: [0, 1],
+      },
+      order,
+    );
+
+    expect(headersInDisplayRange(m, 0, m.rowCount - 1)).toContainEqual(
+      expect.objectContaining({ group: 1, collapsed: true }),
+    );
+  });
+});
+
+describe("groupAtDisplayRow", () => {
+  it("names the group a header row belongs to", () => {
+    expect(groupAtDisplayRow(THREE_GROUPS, 3)).toBe(1);
+  });
+
+  it("names the group a data row belongs to", () => {
+    expect(groupAtDisplayRow(THREE_GROUPS, 5)).toBe(1);
+  });
+
+  it("keeps naming the group above while the viewport sits deep inside it", () => {
+    expect(groupAtDisplayRow(THREE_GROUPS, 8)).toBe(2);
+  });
+
+  it("answers null for a flat grid, which is inside no group", () => {
+    expect(groupAtDisplayRow(buildFlatModel(50), 10)).toBeNull();
+  });
+
+  it("answers null past the last row, rather than a group that is not there", () => {
+    expect(groupAtDisplayRow(THREE_GROUPS, 99)).toBeNull();
   });
 });
