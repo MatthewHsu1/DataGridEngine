@@ -8,7 +8,7 @@ import { Provider, useSelector } from "react-redux";
 import { describe, expect, it, vi } from "vitest";
 import { lightGridTheme } from "../../theme/gridThemes";
 import { buildFlatModel } from "./displayModel";
-import { GridStatusBar } from "./GridStatusBar";
+import { GridHeaderBar } from "./GridHeaderBar";
 import { useCellRenderer } from "./hooks/useCellRenderer";
 import { useGridData } from "./hooks/useGridData";
 import { createGridInstance } from "./store/createGridInstance";
@@ -25,7 +25,7 @@ const WINDOW = { offset: 0, limit: 100 };
 const noRepaint = () => {};
 
 /**
- * Renders exactly what `DataGrid` renders above the grid body: `GridStatusBar`
+ * Renders exactly what `DataGrid` renders above the grid body: `GridHeaderBar`
  * wired to `useGridData`'s `status`/`retry` and `edits.lastError` off the store.
  * A real `DataEditor` mount needs jsdom polyfills this project doesn't carry
  * (ResizeObserver, canvas), so this proves the same wiring without it.
@@ -35,11 +35,12 @@ function StatusBarUnderTest({ instance }: { instance: GridInstance<Row, number, 
   const lastError = useSelector((s: unknown) => instance.selectRoot(s).edits.lastError);
 
   return (
-    <GridStatusBar
+    <GridHeaderBar
       status={status}
       error={lastError?.message ?? null}
       rowCount={total}
       onRetry={retry}
+      group={null}
     />
   );
 }
@@ -103,7 +104,7 @@ describe("DataGrid status wiring", () => {
 /**
  * The edit banner end to end: a real row store and edit overlay whose
  * `updateRow` decides the outcome, `useCellRenderer` turning that outcome into
- * `edits.lastError`, and `GridStatusBar` turning that into the banner the user
+ * `edits.lastError`, and `GridHeaderBar` turning that into the banner the user
  * actually sees.
  *
  * It asserts on the banner rather than on `lastError`, because "the banner
@@ -137,12 +138,13 @@ function EditBannerUnderTest({ instance }: { instance: GridInstance<EditRow, num
 
   return (
     <>
-      <GridStatusBar
+      <GridHeaderBar
         status={status}
         error={lastError?.message ?? null}
         rowCount={total}
         onRetry={() => {}}
         onDismissError={() => dispatch(instance.actions.editErrorCleared())}
+        group={null}
       />
       <button type="button" onClick={() => onCellEdited([0, 0], typedCell)}>
         save A

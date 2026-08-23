@@ -8,7 +8,7 @@ import { specFromGridSort } from "./data/sortSpec";
 import { ensureGridPortal } from "./ensurePortal";
 import { useRowSync } from "./data/sync/useRowSync";
 import type { DisplayModel } from "./displayModel";
-import { GridStatusBar } from "./GridStatusBar";
+import { GridHeaderBar } from "./GridHeaderBar";
 import { sortHeaderIcons } from "./headerIcons";
 import { useCellRenderer } from "./hooks/useCellRenderer";
 import { useDisplayModel } from "./hooks/useDisplayModel";
@@ -123,13 +123,14 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
-      <GridStatusBar
+      <GridHeaderBar
         status={status}
         error={lastError?.message ?? null}
         rowCount={model.rowCount}
         stale={isStale}
         onRetry={retry}
         onDismissError={dismissError}
+        group={null}
       />
 
       {/*
