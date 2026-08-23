@@ -17,17 +17,23 @@ interface Row {
 
 const FIELDS = ["id", "name"];
 
-function makeHarness() {
+function makeHarness(overrides: { unsortable?: string } = {}) {
   const descriptor = {
     name: "demo",
     rowKey: (r: Row) => r.id,
     columns: {
       defs: {
-        id: { field: "id", title: "Id", defaultWidth: 80, editable: false, type: "number" },
+        id: {
+          field: "id",
+          title: "Id",
+          defaultWidth: 80,
+          editable: false,
+          type: "number",
+          sortable: overrides.unsortable !== "id",
+        },
         name: { field: "name", title: "Name", defaultWidth: 120, editable: false, type: "text" },
       },
       defaultOrder: FIELDS,
-      sortable: () => true,
     },
     api: {
       updateRow: async () => ({ ok: true }),
@@ -55,6 +61,26 @@ const render = (h: ReturnType<typeof makeHarness>) =>
   renderHook(() => useGridColumns(h.instance), { wrapper: h.wrapper });
 
 const indicators = (columns: { indicatorIcon?: string }[]) => columns.map((c) => c.indicatorIcon);
+
+describe("useGridColumns sort menu arrow", () => {
+  it("draws an arrow on the columns that can be sorted", async () => {
+    const h = makeHarness();
+    const { result } = render(h);
+
+    await waitFor(() => expect(result.current.columns).toHaveLength(2));
+
+    expect(result.current.columns.map((c) => c.hasMenu)).toEqual([true, true]);
+  });
+
+  it("draws no arrow on a column that says the server cannot order by it", async () => {
+    const h = makeHarness({ unsortable: "id" });
+    const { result } = render(h);
+
+    await waitFor(() => expect(result.current.columns).toHaveLength(2));
+
+    expect(result.current.columns.map((c) => c.hasMenu)).toEqual([false, true]);
+  });
+});
 
 describe("useGridColumns sort indicator", () => {
   it("shows no indicator on any column while the grid is unsorted", async () => {

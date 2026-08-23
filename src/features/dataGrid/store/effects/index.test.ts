@@ -86,4 +86,23 @@ describe("grid effects on the host app's listener", () => {
     expect(typeof inst.stopEffects).toBe("function");
     inst.stopEffects();
   });
+
+  it("persists a reset, so a layout the user threw away does not come back on reload", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const inst = createGridInstance(makeDescriptor("resetDemo", save), {
+      startListening: appListener.startListening,
+    });
+    const store = makeStore("resetDemo", inst.reducer);
+
+    store.dispatch(inst.actions.resizeColumn({ field: "id", width: 200 }));
+    await vi.advanceTimersByTimeAsync(600);
+    save.mockClear();
+
+    store.dispatch(inst.actions.resetColumns());
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(save).toHaveBeenCalledWith({ order: ["id"], widths: {}, hidden: [] });
+
+    inst.stopEffects();
+  });
 });

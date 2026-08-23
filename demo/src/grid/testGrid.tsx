@@ -10,6 +10,7 @@ import {
   updateTestRow,
 } from "./api/testRowQueries";
 import { regionCell, testGridCells } from "./testGridCells";
+import { RegionHeader } from "./RegionHeader";
 
 export const GRID_NAME = "testGrid";
 
@@ -70,10 +71,6 @@ export const testGridDescriptor: GridDescriptor<TestRow, number, number> = {
       "updatedAt",
       "active",
     ],
-    // The default is "editable columns only", which would leave `id`, `sector`,
-    // `region`, and the derived `value` unsortable. Sorting a read-only column
-    // is a thing this page exists to exercise.
-    sortable: () => true,
   },
   grouping: {
     field: "region",
@@ -86,6 +83,11 @@ export const testGridDescriptor: GridDescriptor<TestRow, number, number> = {
     // The header reads its colour from the very cell that draws the column, so
     // a group's header text and that group's badges cannot drift apart.
     color: (region) => regionCell.colorOf(region),
+
+    // The whole reason group headers left the canvas. Each region gets a
+    // DIFFERENT set of components, which is what the hook is for.
+    header: (region) => <RegionHeader region={region} />,
+    headerHeight: 44,
   },
   api: {
     fetchRows: fetchTestRows,

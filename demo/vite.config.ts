@@ -1,6 +1,7 @@
-import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -13,10 +14,10 @@ const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   root: here("."),
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: [
-      { find: "@matthewhsu1/datagrid/datagrid.css", replacement: here("../src/datagrid.css") },
+      { find: "@matthewhsu1/datagrid/datagrid.css", replacement: here("../src/datagrid.src.css") },
       {
         find: "@matthewhsu1/datagrid/radix-styles",
         replacement: here("../src/theme/radixStyles.ts"),

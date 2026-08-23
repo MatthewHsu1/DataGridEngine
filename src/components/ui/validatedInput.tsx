@@ -1,5 +1,4 @@
 import { forwardRef, useEffect, useRef, useState, type InputHTMLAttributes } from "react";
-import { cx } from "../../lib/utils";
 import { Input } from "./input";
 import { validateText, type TextValidationOptions } from "../../lib/text/textValidation";
 
@@ -43,7 +42,7 @@ export const ValidatedInput = forwardRef<HTMLInputElement, ValidatedInputProps>(
     const showError = touched && !valid;
 
     return (
-      <div className="dg-field">
+      <div className="dg:flex dg:flex-col dg:gap-1">
         <Input
           ref={ref}
           value={value}
@@ -54,10 +53,11 @@ export const ValidatedInput = forwardRef<HTMLInputElement, ValidatedInputProps>(
           }}
           maxLength={maxLength ?? validation.maxLength}
           aria-invalid={showError || undefined}
-          className={cx(showError && "dg-input--invalid", className)}
+          invalid={showError}
+          className={className}
           {...rest}
         />
-        {showError && <span className="dg-field__error">{error}</span>}
+        {showError && <span className="dg:text-xs dg:text-[var(--red-11,#ce2c31)]">{error}</span>}
       </div>
     );
   },

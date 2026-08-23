@@ -43,7 +43,8 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "build": "tsup && node scripts/copy-assets.mjs",
+    "build": "tsup && npm run build:css",
+    "build:css": "tailwindcss -i src/datagrid.src.css -o dist/datagrid.css",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "format": "prettier --write .",
@@ -74,6 +75,8 @@
     "@glideapps/glide-data-grid": "6.0.4-alpha24",
     "@radix-ui/themes": "^3.3.0",
     "@reduxjs/toolkit": "^2.12.0",
+    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.101.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -89,6 +92,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-redux": "^9.3.0",
+    "tailwindcss": "^4.3.3",
     "tsup": "^8.5.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",

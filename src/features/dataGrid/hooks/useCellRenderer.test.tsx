@@ -388,11 +388,11 @@ describe("useCellRenderer", () => {
     expect(updateRow).not.toHaveBeenCalled();
   });
 
-  // What `groupHeaderCell` does with a theme and a colour is its own suite's
-  // job. These two only prove the wiring reaches it, because nothing else does:
-  // the theme is an argument the hook could silently drop, and `grouping.color`
-  // is optional, so a missing call would look exactly like a grid that set none.
-  it("draws a group header from the theme it was handed", () => {
+  // What `groupHeaderHole` does with a theme is its own suite's job. These two
+  // only prove the wiring: the theme is an argument the hook could silently
+  // drop, and the hole must stay a hole — a header that drew its own name here
+  // would sit UNDER the React one and show through it.
+  it("draws a group header's hole from the theme it was handed", () => {
     const { result } = makeHarness({
       grouping: {
         field: "sector",
@@ -405,24 +405,21 @@ describe("useCellRenderer", () => {
 
     const header = result.current.getCellContent([0, 0]);
 
-    expect(header.themeOverride).toMatchObject({ bgCell: "#161719", textDark: "#A0A5AD" });
+    expect(header.themeOverride).toMatchObject({ bgCell: "#161719" });
   });
 
-  it("asks the grouping for the header's colour, passing the group it is drawing", () => {
+  it("leaves the group's name to the React header above, and paints none itself", () => {
+    const label = vi.fn((g: string) => g);
     const color = vi.fn(() => undefined);
 
     const { result } = makeHarness({
-      grouping: {
-        field: "sector",
-        of: () => "APAC",
-        order: () => 0,
-        label: (g) => g,
-        color,
-      },
+      grouping: { field: "sector", of: () => "APAC", order: () => 0, label, color },
     });
 
-    result.current.getCellContent([0, 0]);
+    const header = result.current.getCellContent([0, 0]);
 
-    expect(color).toHaveBeenCalledWith("APAC");
+    expect(header).toMatchObject({ data: "", displayData: "" });
+    expect(label).not.toHaveBeenCalled();
+    expect(color).not.toHaveBeenCalled();
   });
 });

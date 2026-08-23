@@ -11,7 +11,7 @@ import { useEditHighlight } from "../../../lib/grid/useEditHighlight";
 import type { EditOverlay } from "../data/editOverlay";
 import type { RowStore } from "../data/rowStore";
 import { displayToData, type DisplayModel } from "../displayModel";
-import { groupHeaderCell } from "../groupHeaderCell";
+import { groupHeaderHole } from "../groupHeaderHole";
 import type { GridDescriptor, GridInstance } from "../types";
 import { useGridDispatch } from "../useGridDispatch";
 
@@ -225,11 +225,11 @@ export function useCellRenderer<TRow extends object, TGroup, TKey extends string
     ([col, displayRow]: Item): GridCell => {
       const cell = displayToData(model, displayRow);
 
+      // The name, the colour and the host's components are all drawn by
+      // `GroupHeaderLayer`, in React, above this row. All the canvas owes the
+      // header is the space and the fill.
       if (cell.kind === "header") {
-        const grouping = descriptor.grouping;
-        const label = grouping?.label(cell.group) ?? "";
-
-        return groupHeaderCell(label, columnCount, theme, grouping?.color?.(cell.group));
+        return groupHeaderHole(columnCount, theme);
       }
 
       const row = rowAt(cell.dataIndex);

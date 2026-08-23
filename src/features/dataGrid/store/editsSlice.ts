@@ -18,7 +18,7 @@ import type { EditError, EditState } from "../types";
  *   no-op, which is what it should be.
  *
  * - `editErrorCleared` is the UNCONDITIONAL way out, dispatched by
- *   `GridStatusBar`'s dismiss. Dismiss means "I am done with this message",
+ *   `GridHeaderBar`'s dismiss. Dismiss means "I am done with this message",
  *   whatever cell it came from, so it carries no cell and matches nothing.
  *   Clearing on success alone would leave a user who gives up editing staring
  *   at the message for the life of the page; a dismiss is the only exit that

@@ -368,7 +368,7 @@ async function loadPage<TRow extends object, TGroup, TKey extends string | numbe
     }
 
     // Swallowed on purpose. The page state carries the failure and
-    // `GridStatusBar` shows it; re-throwing here would surface as an unhandled
+    // `GridHeaderBar` shows it; re-throwing here would surface as an unhandled
     // rejection from an effect nobody awaits.
     store.markFailed(page);
   } finally {

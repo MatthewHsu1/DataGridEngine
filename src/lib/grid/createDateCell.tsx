@@ -1,27 +1,14 @@
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { Text, Theme } from "@radix-ui/themes";
-import { useState, type ChangeEvent } from "react";
-import { Calendar } from "../../components/ui/calendar";
-import { Input } from "../../components/ui/input";
+import { Theme } from "@radix-ui/themes";
+import { DatePicker } from "../../components/ui/datePicker";
 import { gridRadixTheme } from "../../theme/radixTheme";
-import {
-  composeIso,
-  formatDateDisplay,
-  isoToCalendarDate,
-  isoToTimeInput,
-  isValidDateValue,
-  parseDatePaste,
-} from "../date/dateUtils";
+import { formatDateDisplay, isValidDateValue, parseDatePaste } from "../date/dateUtils";
 import {
   createCustomCell,
   drawEmptyDash,
   makeCustomCell,
   type EditorProps,
 } from "./createCustomCell";
-
-/** How many years before/after the current year the calendar's year dropdown spans. */
-const CALENDAR_YEARS_BACK = 500;
-const CALENDAR_YEARS_FORWARD = 500;
 
 /** Cell payload. `value` is a canonical UTC ISO string, or null for an unset cell. */
 export interface DateCellData {
@@ -43,8 +30,11 @@ export interface DateCell {
 
 /**
  * Build a reusable date cell: a canvas text `draw` (localized date, or date+time
- * when the cell's `withTime` is set) plus a shadcn `Calendar` editor with an
- * optional native time input. Stores canonical UTC ISO strings.
+ * when the cell's `withTime` is set) plus a `DatePicker` overlay editor. Stores
+ * canonical UTC ISO strings.
+ *
+ * The editor HOLDS the edit: nothing reaches the cell until the user presses OK,
+ * and Cancel or Escape discards it. A click on a day is no longer a commit.
  *
  * Call once at module scope (not inside a React render): the editor component
  * identity is tied to this call, so re-creating it per render would remount it.
@@ -56,63 +46,17 @@ export function createDateCell({
   kind: string;
   nullable?: boolean;
 }): DateCell {
-  const Editor = ({ value, onChange }: EditorProps<DateCellData>) => {
-    const selected = isoToCalendarDate(value.value, value.withTime);
-    const currentYear = new Date().getFullYear();
-
-    const [time, setTime] = useState(isoToTimeInput(value.value));
-
-    const handleDay = (day?: Date) => {
-      if (!day) {
-        // Deselect clears the cell only when empty is allowed (mirrors onPaste).
-        if (nullable) {
-          onChange({ ...value, value: null });
-        }
-        return;
-      }
-      onChange({ ...value, value: composeIso(day, time, value.withTime) });
-    };
-
-    const handleTime = (e: ChangeEvent<HTMLInputElement>) => {
-      const next = e.target.value;
-      setTime(next);
-
-      if (selected) {
-        onChange({ ...value, value: composeIso(selected, next, value.withTime) });
-      }
-    };
-
-    return (
-      <Theme {...gridRadixTheme()}>
-        <div className="dg-date-editor" style={{ padding: 8, minWidth: 280 }}>
-          <Calendar
-            mode="single"
-            selected={selected}
-            onSelect={handleDay}
-            defaultMonth={selected}
-            captionLayout="dropdown"
-            startMonth={new Date(currentYear - CALENDAR_YEARS_BACK, 0)}
-            endMonth={new Date(currentYear + CALENDAR_YEARS_FORWARD, 11)}
-            autoFocus
-          />
-          {value.withTime && (
-            <label className="dg-field dg-field--stacked">
-              <Text as="span" size="2" weight="medium">
-                Time
-              </Text>
-              <Input
-                type="time"
-                value={time}
-                onChange={handleTime}
-                aria-label="Time"
-                className="dg-input--block"
-              />
-            </label>
-          )}
-        </div>
-      </Theme>
-    );
-  };
+  const Editor = ({ value, onFinishedEditing }: EditorProps<DateCellData>) => (
+    <Theme {...gridRadixTheme()}>
+      <DatePicker
+        mode={value.withTime ? "datetime" : "date"}
+        value={value.value}
+        nullable={nullable}
+        onConfirm={(next: string | null) => onFinishedEditing({ ...value, value: next })}
+        onCancel={() => onFinishedEditing(undefined)}
+      />
+    </Theme>
+  );
 
   const renderer = createCustomCell<DateCellData>({
     kind,
