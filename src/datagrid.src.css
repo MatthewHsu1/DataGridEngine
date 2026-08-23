@@ -39,21 +39,12 @@
 
 @source "./**/*.tsx";
 
-/* -------------------------------------------------------------- calendar -- */
-
 /*
- * react-day-picker accent binding for the date-cell editor, and the one rule
- * here that is not a utility.
- *
- * <Calendar> renders as a DESCENDANT of this class, so these vars cascade into
- * the react-day-picker root and bind its accent to Radix's accent. That is what
- * makes the calendar follow `configureGridTheme({ accentColor })` at runtime,
- * with no code change. A utility cannot express it: the class does not style
- * the element it sits on, it styles a subtree the library owns.
+ * `.ts` as well as `.tsx`, because a class name does not need JSX to be written:
+ * `components/ui/dayPickerTheme.ts` is nothing but class strings. Leaving this
+ * out fails SILENTLY and only sometimes — a build run from the repo root picks
+ * the file up through Tailwind's automatic detection, and one run from anywhere
+ * else (the demo's Vite root, for instance) does not.
  */
-@layer components {
-  .dg-date-editor {
-    --rdp-accent-color: var(--accent-9);
-    --rdp-accent-background-color: var(--accent-3);
-  }
-}
+@source "./**/*.ts";
+

@@ -85,13 +85,19 @@ describe("ColumnPicker", () => {
     expect(screen.getByRole("button", { name: /columns/i })).toHaveTextContent("2 / 3");
   });
 
-  it("locks the grouped column, so the banner always has a column to point at", async () => {
+  it("hides the grouped column like any other, since the banner names the group itself", async () => {
     const h = harness({ grouped: true });
     h.wrap(<ColumnPicker instance={h.instance} />);
 
     await open();
 
-    expect(screen.getByRole("checkbox", { name: /region/i })).toBeDisabled();
+    const region = screen.getByRole("checkbox", { name: /region/i });
+
+    expect(region).toBeEnabled();
+
+    await userEvent.click(region);
+
+    expect(h.columns().hidden).toEqual(["region"]);
   });
 
   it("puts every column back when reset", async () => {

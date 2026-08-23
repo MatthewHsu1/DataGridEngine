@@ -82,6 +82,25 @@ export {
 export { drawSoftBadge, type ResolvedBadgeColors } from "./lib/grid/softBadge";
 export { BADGE_SEQUENCE, radixColorByIndex, type RadixColor } from "./lib/grid/radixBadgePalette";
 
+// ------------------------------------------------------------ date picker --
+
+/**
+ * The date picker the date cell edits through, exported for the host's own
+ * DOM: filters, toolbars, forms. `DatePicker` renders inline (a grid overlay
+ * already floats it); `DatePickerPopover` adds a trigger for ordinary DOM.
+ */
+export {
+  DatePicker,
+  type DatePickerMode,
+  type DatePickerProps,
+  type DateRange,
+} from "./components/ui/datePicker";
+
+export {
+  DatePickerPopover,
+  type DatePickerPopoverProps,
+} from "./components/ui/datePickerPopover";
+
 // ---------------------------------------------------------------- theme --
 
 export {
