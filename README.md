@@ -157,22 +157,43 @@ npm run lint
 npm run build     # dist/ — JS, .d.ts, and datagrid.css
 ```
 
+`just check` runs all four in one go. The recipes live in
+[`justfile`](./justfile) and need [`just`](https://github.com/casey/just)
+installed; everything they call is a plain `npm` script, so `just` is a
+convenience, never a requirement.
+
 ## Releasing
 
 Versions ship from CI on a `v*` tag, authenticated with npm **trusted
 publishing** (OIDC) — there is no `NPM_TOKEN` anywhere in this repo.
 
 ```bash
-# bump package.json first, then:
-git tag v0.1.1
-git push origin main --tags
+just release patch   # or: minor, major
 ```
 
-The workflow refuses to publish if the tag and `package.json` disagree.
+That is the whole process. `just release` runs the checks, bumps
+`package.json`, commits, tags, and pushes — in that order, so the tag always
+points at the code that actually ships. It refuses to run from a dirty tree, a
+branch other than `main`, a branch out of sync with `origin`, or a failing
+`just check`.
 
-npm cannot enable OIDC for a package that does not exist yet
-([npm/cli#8544](https://github.com/npm/cli/issues/8544)), so the very first
-version was published by hand. See the header of
+Do not tag by hand. `git tag` on its own leaves `package.json` behind, and a
+tag cut before a later fix keeps pointing at the old commit — CI then builds
+code you already replaced. The workflow refuses to publish if the tag and
+`package.json` disagree, but it cannot catch a stale tag that happens to match.
+
+Two things had to be set up once, and neither lives in this repo:
+
+- npm cannot enable OIDC for a package that does not exist yet
+  ([npm/cli#8544](https://github.com/npm/cli/issues/8544)), so `0.1.0` was
+  published by hand.
+- The package must list this repo as a trusted publisher on npmjs.com
+  (package → Settings → Trusted publisher → GitHub Actions, workflow
+  `publish.yml`, no environment). Without it the publish fails at the last
+  step with `404 Not Found - PUT`, which reads like a missing package but
+  means npm rejected the credential.
+
+See the header of
 [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
 
 ## Licence
