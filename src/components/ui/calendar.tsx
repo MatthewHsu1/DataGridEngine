@@ -10,14 +10,14 @@ export type CalendarProps = ComponentProps<typeof DayPicker>;
 /**
  * shadcn-style Calendar: a thin react-day-picker wrapper. Accent colors come
  * from react-day-picker's own `--rdp-accent-color`, bound to Radix's `--accent-*`
- * in the `.dg-date-editor` scope (see datagrid.css), so the calendar tracks the
+ * in the `.dg-date-editor` scope (see datagrid.src.css), so the calendar tracks the
  * host app's Radix Themes config at runtime.
  */
 export function Calendar({ className, showOutsideDays = true, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cx("dg-calendar", className)}
+      className={cx("dg:p-3", className)}
       components={{
         Chevron: ({ orientation }: ChevronProps) => {
           const Icon =
@@ -28,7 +28,7 @@ export function Calendar({ className, showOutsideDays = true, ...props }: Calend
                 : orientation === "up"
                   ? ChevronUp
                   : ChevronDown;
-          return <Icon className="dg-calendar__chevron" />;
+          return <Icon className="dg:size-4" />;
         },
       }}
       {...props}

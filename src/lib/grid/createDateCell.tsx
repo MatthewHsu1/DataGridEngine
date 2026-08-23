@@ -96,7 +96,7 @@ export function createDateCell({
             autoFocus
           />
           {value.withTime && (
-            <label className="dg-field dg-field--stacked">
+            <label className="dg:mt-2 dg:flex dg:flex-col dg:gap-1">
               <Text as="span" size="2" weight="medium">
                 Time
               </Text>
@@ -105,7 +105,7 @@ export function createDateCell({
                 value={time}
                 onChange={handleTime}
                 aria-label="Time"
-                className="dg-input--block"
+                className="dg:w-full"
               />
             </label>
           )}

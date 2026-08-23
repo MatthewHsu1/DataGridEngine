@@ -1,0 +1,59 @@
+/*
+ * The SOURCE of the package's stylesheet. `dist/datagrid.css` is generated from
+ * this file by Tailwind; nothing hand-writes that output, and nothing imports
+ * this file at runtime.
+ *
+ * Consumers still import one plain stylesheet, exactly as before:
+ *
+ *   import "@matthewhsu1/datagrid/datagrid.css";
+ *
+ * Three things about this file are load-bearing:
+ *
+ * 1. PREFLIGHT IS DELIBERATELY ABSENT. `@import "tailwindcss"` would pull in
+ *    Tailwind's reset, and a library stylesheet that resets the host's margins,
+ *    heading sizes, and form controls is a package that vandalises the app that
+ *    installs it. Importing `theme.css` and `utilities.css` separately is the
+ *    documented way to take the utilities without the reset.
+ *
+ * 2. `prefix(dg)` makes every utility `dg:`-shaped and every theme variable
+ *    `--dg-*`. Two packages can then both ship Tailwind without their
+ *    `.flex` rules fighting, and a host app's own Tailwind cannot be
+ *    overwritten by ours.
+ *
+ * 3. `@source` is what makes any of this exist. Tailwind builds its output by
+ *    SCANNING source files for class names, and it never scans `node_modules`.
+ *    That is why a package cannot ship unprefixed utility classes and hope the
+ *    consumer's Tailwind emits them: the class would land on the element with
+ *    no rule behind it, silently. Scanning here, at build time, and shipping
+ *    the result is what closes that hole.
+ *
+ * Colours come from Radix Themes tokens, written as arbitrary values. They
+ * resolve because every grid popup mounts its own <Theme> — see
+ * `theme/radixTheme.ts`.
+ */
+
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme) prefix(dg);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(dg);
+
+@source "./**/*.tsx";
+
+/* -------------------------------------------------------------- calendar -- */
+
+/*
+ * react-day-picker accent binding for the date-cell editor, and the one rule
+ * here that is not a utility.
+ *
+ * <Calendar> renders as a DESCENDANT of this class, so these vars cascade into
+ * the react-day-picker root and bind its accent to Radix's accent. That is what
+ * makes the calendar follow `configureGridTheme({ accentColor })` at runtime,
+ * with no code change. A utility cannot express it: the class does not style
+ * the element it sits on, it styles a subtree the library owns.
+ */
+@layer components {
+  .dg-date-editor {
+    --rdp-accent-color: var(--accent-9);
+    --rdp-accent-background-color: var(--accent-3);
+  }
+}
