@@ -1,7 +1,7 @@
 {
   "name": "@matthewhsu1/datagrid",
-  "version": "0.1.2",
-  "description": "A virtualised, server-paged data grid engine for React \u2014 windowed paging, a page cache, optimistic edits, cross-client row sync, grouping, and typed cell editors, over glide-data-grid.",
+  "version": "0.2.0",
+  "description": "A virtualised, server-paged data grid engine for React — windowed paging, a page cache, optimistic edits, cross-client row sync, grouping, and typed cell editors, over glide-data-grid.",
   "license": "MIT",
   "author": "MatthewHsu1 <matthewhsu1128@gmail.com>",
   "repository": {
