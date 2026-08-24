@@ -13,6 +13,32 @@ more rows than the browser ever will.
 > **pre-release** build of glide-data-grid (`6.0.4-alpha24`); that pin loosens
 > when glide 6 ships stable.
 
+## What it looks like
+
+All three clips are the demo in this repo: 100,000 synthetic rows behind a Mock
+Service Worker.
+
+### Scrolling
+
+Pages load into the window as it moves, and evict behind it. The row count is
+the server's, not the browser's.
+
+![Scrolling through 100,000 server-paged rows](./docs/examples/images/scrolling.gif)
+
+### Grouping and sorting
+
+A collapse tells the server to leave those rows out, so the total changes with
+it. The old rows stay on screen while the new view loads behind them.
+
+![Grouping rows and sorting a column](./docs/examples/images/grouping-and-sorting.gif)
+
+### Editing
+
+An edit shows immediately and is sent behind it. A rejection rolls the cell back
+and says why.
+
+![Editing a cell with optimistic update and rollback](./docs/examples/images/editing.gif)
+
 ## Install
 
 ```bash
@@ -26,103 +52,39 @@ npm i react react-dom react-redux @reduxjs/toolkit @tanstack/react-query \
       @radix-ui/themes @glideapps/glide-data-grid@6.0.4-alpha24
 ```
 
-## Wire it up
+## Quick start
 
-### 1. Styles, once
-
-```ts
-import "@matthewhsu1/datagrid/radix-styles"; // Radix token CSS the badges need
-import "@matthewhsu1/datagrid/datagrid.css"; // the grid's own styles
-```
-
-There is no Tailwind here. The package ships plain CSS on `dg-`-prefixed
-classes, so it styles itself whatever your app uses.
-
-### 2. Tell it about your theme, once
+Full detail — every option, its default, and the traps — is in
+[`docs/examples/configuration.md`](./docs/examples/configuration.md). This is the shortest path
+that works.
 
 ```ts
-import { configureGridTheme } from "@matthewhsu1/datagrid";
+// 1. Styles, once at your entry point.
+import "@matthewhsu1/datagrid/radix-styles";
+import "@matthewhsu1/datagrid/datagrid.css";
 
-configureGridTheme({
-  accentColor: "grass", // match your app's Radix accent
-  grayColor: "slate",
-  selectAppearance: (state) => state.myTheme.mode, // optional, see below
-});
-```
+// 2. Point the grid at your accent, once, before the first grid renders.
+configureGridTheme({ accentColor: "grass", grayColor: "slate" });
 
-A cell editor portals out of the canvas and mounts its own `<Theme>`, so it
-cannot inherit your provider — this is how it learns your accent.
-
-### 3. Give it light/dark
-
-The grid reads `state.appearance.appearance` by default. Either mount the
-slice the package ships:
-
-```ts
-import { appearanceReducer, setAppearance } from "@matthewhsu1/datagrid";
-
-configureStore({ reducer: { appearance: appearanceReducer /* ... */ } });
-```
-
-…or point `configureGridTheme({ selectAppearance })` at wherever you already
-keep it. What _writes_ it — an OS media query, a host page class, a toggle — is
-always yours.
-
-### 4. The overlay portal (usually automatic)
-
-glide-data-grid draws every cell editor into a `<div id="portal">` it looks up
-by id. **Without it, no cell can be edited** — and the grid otherwise looks
-perfectly healthy, so it is a nasty thing to debug. `<DataGrid>` creates the
-element on mount if your app has not, so normally you do nothing.
-
-Declare it yourself only if you need to control its stacking:
-
-```html
-<body>
-  <div id="root"></div>
-  <div id="portal" style="position: fixed; left: 0; top: 0; z-index: 9999"></div>
-</body>
-```
-
-An element you provide is left exactly as it is.
-
-### 5. Describe a grid
-
-```ts
-import {
-  createGridInstance,
-  localStorageColumnsAdapter,
-  type GridDescriptor,
-} from "@matthewhsu1/datagrid";
-
-const columns = localStorageColumnsAdapter("orders:columns");
-
-export const orderGrid = createGridInstance(
+// 3. Describe one grid.
+const orderGrid = createGridInstance(
   {
     name: "orders",
     rowKey: (row) => row.id,
-    columns: { defs: COLUMN_DEFS, defaultOrder: [...] },
-    api: {
-      fetchRows,       // one ordered slice
-      fetchCount,      // the total under the current view
-      fetchRow,        // one row, for an id-only push
-      updateRow,       // persist one cell edit
-      loadColumns: columns.loadColumns,
-      saveColumns: columns.saveColumns,
-    },
+    columns: { defs: COLUMN_DEFS, defaultOrder: DEFAULT_ORDER },
     cells: orderCells,
-  } satisfies GridDescriptor<OrderRow, never, string>,
-  // Column persistence runs as a listener effect. The engine ships no
-  // middleware of its own, so hand it yours.
+    api: { fetchRows, fetchCount, fetchRow, updateRow },
+  },
   { startListening: listenerMiddleware.startListening },
 );
+
+// 4. Mount its reducer under the descriptor's name, then render.
+//    <DataGrid instance={orderGrid} />
 ```
 
-Mount `orderGrid.reducer` under `"orders"` in your store, and render:
-
-```tsx
-<DataGrid instance={orderGrid} />
-```
+The grid needs a Redux store, your listener middleware, and a
+`QueryClientProvider` above it. It creates its own `<div id="portal">` if your
+page has none — without one, no cell can be edited and nothing says so.
 
 ## Run the demo
 
@@ -138,9 +100,10 @@ surface is not enough to build an app, the demo stops building.
 
 ## What is public
 
-Only what `src/index.ts` re-exports, plus `@matthewhsu1/datagrid/testing`.
-Deep imports are blocked by `exports`, deliberately: everything else is free to
-move in a patch release.
+Only what `src/index.ts` re-exports, plus `@matthewhsu1/datagrid/testing`. Deep
+imports are blocked by `exports`, deliberately: everything else is free to move
+in a patch release. Every public symbol is documented in
+[`docs/examples/configuration.md`](./docs/examples/configuration.md).
 
 ## Vocabulary
 
@@ -151,50 +114,14 @@ changing anything in `src/features/dataGrid/`.
 ## Develop
 
 ```bash
-npm test          # 430 tests
+npm test           # 615 tests
 npm run typecheck
+npm run check:docs # typechecks every code block in docs/
 npm run lint
-npm run build     # dist/ — JS, .d.ts, and datagrid.css
+npm run build      # dist/ — JS, .d.ts, and datagrid.css
 ```
 
-`just check` runs all four in one go. The recipes live in
-[`justfile`](./justfile) and need [`just`](https://github.com/casey/just)
-installed; everything they call is a plain `npm` script, so `just` is a
-convenience, never a requirement.
-
-## Releasing
-
-Versions ship from CI on a `v*` tag, authenticated with npm **trusted
-publishing** (OIDC) — there is no `NPM_TOKEN` anywhere in this repo.
-
-```bash
-just release patch   # or: minor, major
-```
-
-That is the whole process. `just release` runs the checks, bumps
-`package.json`, commits, tags, and pushes — in that order, so the tag always
-points at the code that actually ships. It refuses to run from a dirty tree, a
-branch other than `main`, a branch out of sync with `origin`, or a failing
-`just check`.
-
-Do not tag by hand. `git tag` on its own leaves `package.json` behind, and a
-tag cut before a later fix keeps pointing at the old commit — CI then builds
-code you already replaced. The workflow refuses to publish if the tag and
-`package.json` disagree, but it cannot catch a stale tag that happens to match.
-
-Two things had to be set up once, and neither lives in this repo:
-
-- npm cannot enable OIDC for a package that does not exist yet
-  ([npm/cli#8544](https://github.com/npm/cli/issues/8544)), so `0.1.0` was
-  published by hand.
-- The package must list this repo as a trusted publisher on npmjs.com
-  (package → Settings → Trusted publisher → GitHub Actions, workflow
-  `publish.yml`, no environment). Without it the publish fails at the last
-  step with `404 Not Found - PUT`, which reads like a missing package but
-  means npm rejected the credential.
-
-See the header of
-[`.github/workflows/publish.yml`](.github/workflows/publish.yml).
+`just check` runs all five in one go.
 
 ## Licence
 

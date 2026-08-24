@@ -6,6 +6,7 @@ default:
 check:
     npm run lint
     npm run typecheck
+    npm run check:docs
     npm test
     npm run build
 

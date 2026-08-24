@@ -7,7 +7,12 @@ coverage/
 .env
 .env.*
 !.env.example
-docs
+
+docs/*
+!docs/examples/
+
+docs/examples/.check-*/
+tsconfig..check-*.json
 
 # Serena LSP cache / project config
 .serena/

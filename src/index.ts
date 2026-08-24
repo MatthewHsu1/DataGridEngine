@@ -21,6 +21,7 @@ export { localStorageColumnsAdapter } from "./features/dataGrid/store/localStora
 
 export type {
   ColumnDef,
+  ColumnsState,
   EditError,
   EditState,
   FetchRowsParams,
@@ -30,7 +31,9 @@ export type {
   GridInstanceOptions,
   GridSliceState,
   GridSort,
+  GroupsState,
   RowChange,
+  SelectionState,
   StartListening,
   UpdateRowParams,
 } from "./features/dataGrid/types";
