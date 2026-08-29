@@ -10,8 +10,10 @@ column layout, and typed cell editors — all against a server that holds far
 more rows than the browser ever will.
 
 > **Status: 0.x.** The API will break between minor versions. It is pinned to a
-> **pre-release** build of glide-data-grid (`6.0.4-alpha24`); that pin loosens
-> when glide 6 ships stable.
+> **pre-release** build of glide-data-grid (`6.0.4-alpha24`). This is not a
+> choice: glide's latest stable release, `6.0.3`, declares a React peer of
+> `^16.12.0 || 17.x || 18.x`. React 19 support first appears in the `6.0.4`
+> alpha line. The pin loosens when glide ships a stable `6.0.4`.
 
 ## What it looks like
 
