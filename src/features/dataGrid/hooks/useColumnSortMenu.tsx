@@ -34,10 +34,7 @@ export function useColumnSortMenu<
 
   const [target, setTarget] = useState<ColumnMenuTarget | null>(null);
 
-  const sortable = useMemo(
-    () => sortablePredicate(defs),
-    [defs],
-  );
+  const sortable = useMemo(() => sortablePredicate(defs), [defs]);
 
   const onHeaderMenuClick = useCallback(
     (colIndex: number, bounds: Rectangle) => {
@@ -69,9 +66,7 @@ export function useColumnSortMenu<
     [dispatch, instance, sort],
   );
 
-  const menu = (
-    <ColumnHeaderMenu target={target} sort={sort} onSort={onSort} onClose={close} />
-  );
+  const menu = <ColumnHeaderMenu target={target} sort={sort} onSort={onSort} onClose={close} />;
 
   return { onHeaderMenuClick, menu };
 }

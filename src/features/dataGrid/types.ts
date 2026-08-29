@@ -61,28 +61,40 @@ interface ColumnDefBase {
  * forever, so glide may add kinds without ever colliding with ours.
  *
  * `options` is that cell type's own settings, and each branch below types its
- * own. Anything else is a cell the HOST registered through `descriptor.cells`;
- * its `options` is `unknown` here, because only that cell knows its shape.
+ * own. A column naming a cell the HOST registered through `descriptor.cells`
+ * says so with `custom: true`, and its `options` is then `unknown`.
  *
- * Note the cost of that open branch: because any string is a legal `type`, a
- * mistyped key inside a built-in column's `options` still satisfies the open
- * branch and so does not raise an error. Autocomplete on `type` is unaffected.
+ * That one word is what makes every other branch check. An open `type: string`
+ * branch would swallow everything: a mistyped `type`, a mistyped key inside a
+ * built-in column's `options`, even a `dg:enum` with no choices at all would
+ * satisfy it and raise nothing. With `custom` as the discriminant, TypeScript
+ * has to pick a real branch, so all three are errors — and the cost is one key
+ * on the columns that genuinely are custom.
  */
 export type ColumnDef =
-  | (ColumnDefBase & { type: "dg:text"; options?: TextCellOptions })
-  | (ColumnDefBase & { type: "dg:number"; options?: NumberCellOptions })
-  | (ColumnDefBase & { type: "dg:date"; options?: DateCellOptions })
-  | (ColumnDefBase & { type: "dg:enum"; options: EnumCellOptions })
-  | (ColumnDefBase & { type: "dg:phone"; options?: PhoneCellOptions })
+  | (ColumnDefBase & { type: "dg:text"; custom?: false; options?: TextCellOptions })
+  | (ColumnDefBase & { type: "dg:number"; custom?: false; options?: NumberCellOptions })
+  | (ColumnDefBase & { type: "dg:date"; custom?: false; options?: DateCellOptions })
+  | (ColumnDefBase & { type: "dg:enum"; custom?: false; options: EnumCellOptions })
+  | (ColumnDefBase & { type: "dg:phone"; custom?: false; options?: PhoneCellOptions })
   | (ColumnDefBase & {
       /** One of glide's own cell kinds, drawn by glide. These take no options. */
       type: "text" | "number" | "boolean" | "uri" | "markdown" | "image" | "bubble" | "drilldown";
+      custom?: false;
       options?: undefined;
     })
   | (ColumnDefBase & {
       /** A cell type the host registered through `descriptor.cells`. */
-      // eslint-disable-next-line @typescript-eslint/ban-types
-      type: string & {};
+      type: string;
+
+      /**
+       * REQUIRED for a host-registered cell type, and the only thing that marks
+       * one. Without it a `type` this package does not know is an error naming
+       * the ones it does — which is what catches `"dg:numbr"`.
+       */
+      custom: true;
+
+      /** Whatever that cell type reads. Only it knows the shape. */
       options?: unknown;
     });
 

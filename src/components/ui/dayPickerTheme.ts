@@ -74,8 +74,7 @@ const BASE: Partial<ClassNames> = {
 
   dropdowns: "dg:flex dg:items-center dg:gap-1",
   dropdown_root:
-    "dg:relative dg:rounded-md dg:px-1.5 dg:py-0.5 " +
-    "dg:hover:bg-[var(--gray-3,#f0f0f3)]",
+    "dg:relative dg:rounded-md dg:px-1.5 dg:py-0.5 " + "dg:hover:bg-[var(--gray-3,#f0f0f3)]",
   dropdown: "dg:absolute dg:inset-0 dg:cursor-pointer dg:opacity-0",
 
   month_grid: "dg:border-collapse",
@@ -88,8 +87,7 @@ const BASE: Partial<ClassNames> = {
   day_button: DAY_BUTTON,
 
   // Property-disjoint from selection: a ring, never a fill or a colour.
-  today:
-    "dg:[&>button]:ring-1 dg:[&>button]:ring-inset dg:[&>button]:ring-[var(--gray-8,#c7cbd1)]",
+  today: "dg:[&>button]:ring-1 dg:[&>button]:ring-inset dg:[&>button]:ring-[var(--gray-8,#c7cbd1)]",
   outside: "dg:[&>button]:text-[var(--gray-8,#c7cbd1)]",
   disabled: "dg:opacity-30",
   hidden: "dg:invisible",

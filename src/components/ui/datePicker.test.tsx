@@ -253,9 +253,7 @@ describe("DatePicker: range mode", () => {
 
 describe("DatePicker: range-datetime mode", () => {
   it("shows a time input for each end", () => {
-    mount(
-      <DatePicker mode="range-datetime" value={null} onConfirm={vi.fn()} onCancel={vi.fn()} />,
-    );
+    mount(<DatePicker mode="range-datetime" value={null} onConfirm={vi.fn()} onCancel={vi.fn()} />);
 
     expect(screen.getByLabelText("Start time")).toBeInTheDocument();
     expect(screen.getByLabelText("End time")).toBeInTheDocument();

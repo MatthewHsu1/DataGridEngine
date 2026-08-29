@@ -40,6 +40,10 @@ types plus the descriptor's own.
 column and carried inside every cell that column makes. Only the cell type they
 belong to reads them.
 
+**Custom column** — a column whose `type` names a cell the host registered
+rather than one this package ships. It says so with `custom: true`, which is
+what lets every other column's `type` and options be checked.
+
 ## Rows and where they live
 
 **Row store** — the engine's cache of server rows, held by page. It is the only

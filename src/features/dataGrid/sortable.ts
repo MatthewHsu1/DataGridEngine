@@ -13,8 +13,6 @@ import type { ColumnDef } from "./types";
  * column that the server genuinely cannot order by says so itself, on its own
  * `ColumnDef`.
  */
-export function sortablePredicate(
-  defs: Record<string, ColumnDef>,
-): (field: string) => boolean {
+export function sortablePredicate(defs: Record<string, ColumnDef>): (field: string) => boolean {
   return (field: string) => defs[field] !== undefined && defs[field].sortable !== false;
 }

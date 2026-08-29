@@ -343,6 +343,34 @@ allowed to differ. A def whose `type` matches a built-in **replaces** that
 built-in for that grid, which is how you change a cell the engine draws without
 forking the package.
 
+A column pointing at it must say `custom: true`:
+
+```ts
+import type { ColumnDef } from "@matthewhsu1/datagrid";
+
+export const ratingColumn: ColumnDef = {
+  field: "rating",
+  title: "Rating",
+  defaultWidth: 120,
+  editable: true,
+  type: "rating",  // REQUIRED. Matches your CellTypeDef.type.
+  custom: true,    // REQUIRED for a type this package does not ship.
+  options: { max: 5 }, // whatever your cell reads; `unknown` to the engine.
+};
+```
+
+**That one word is what makes every other column check.** Without it, `type`
+would have to accept any string, and TypeScript would then accept a mistyped
+`type`, a mistyped key inside a built-in's `options`, and a `dg:enum` with no
+choices — all silently. With `custom` as the marker, each of those is an error:
+
+```ts no-check
+{ type: "dg:numbr" }                       // ✗ not a cell type, and not custom
+{ type: "dg:number", options: { currncy } } // ✗ `currncy` is not an option
+{ type: "dg:enum" }                        // ✗ dg:enum must say what it holds
+{ type: "dg:text", options: { withTime } }  // ✗ withTime belongs to dg:date
+```
+
 ---
 
 ## 6. Columns
@@ -390,9 +418,13 @@ export const COLUMN_DEFS: Record<string, ColumnDef> = {
 export const DEFAULT_ORDER = ["reference", "total", "placedAt", "customer"];
 ```
 
-The six fields above `options` are read by the **grid** — the header, the
-layout, the sort menu, the edit path. `options` is read only by the cell the
-`type` names, which is why a setting like `withTime` lives there.
+The five fields above `type` are read by the **grid** — the header, the layout,
+the sort menu, the edit path. `options` is read only by the cell the `type`
+names, which is why a setting like `withTime` lives there.
+
+`type` and `options` are checked **together**: pick `dg:enum` and TypeScript
+insists on its `choices`; pick `dg:date` and only date options are accepted. A
+type this package does not ship needs `custom: true` beside it — see section 5.
 
 Set `sortable: false` for any column the **server** cannot order by — one your
 client derives, or one with no index behind it. The sort is sent to the server,

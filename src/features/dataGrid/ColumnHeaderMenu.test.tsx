@@ -13,10 +13,10 @@ function renderMenu(props: Partial<Parameters<typeof ColumnHeaderMenu>[0]> = {})
   return render(
     <Theme>
       <ColumnHeaderMenu
-      target={TARGET}
-      sort={null}
-      onSort={() => {}}
-      onClose={() => {}}
+        target={TARGET}
+        sort={null}
+        onSort={() => {}}
+        onClose={() => {}}
         {...props}
       />
     </Theme>,
