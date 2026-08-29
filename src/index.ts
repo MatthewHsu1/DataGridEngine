@@ -4,8 +4,8 @@
  * `package.json` exposes only `.`, `./testing`, `./radix-styles`, and the
  * stylesheet, so nothing below this file is reachable from a consuming app.
  * That is deliberate: everything NOT re-exported here — the row store, the
- * display model, the slices, every hook but the ones named below — is free to
- * be renamed, moved, or rewritten in a patch release.
+ * display model, the slices, the cell registry, every hook but the ones named
+ * below — is free to be renamed, moved, or rewritten in a patch release.
  *
  * Add an export here only when a consuming app genuinely cannot do its job
  * without it. Every symbol added is a promise.
@@ -13,14 +13,20 @@
 
 // ------------------------------------------------------------- the grid --
 
-export { DataGrid } from "./features/dataGrid/DataGrid";
+export {
+  DataGrid,
+  type DataGridProps,
+  type GridDrawHeader,
+  type GridDrawHeaderArgs,
+} from "./features/dataGrid/DataGrid";
+
 export { createGridInstance } from "./features/dataGrid/store/createGridInstance";
-export { localStorageColumnsAdapter } from "./features/dataGrid/store/localStorageColumnsAdapter";
 
 // -------------------------------------------------- describing one grid --
 
 export type {
   ColumnDef,
+  ColumnsAdapter,
   ColumnsState,
   EditError,
   EditState,
@@ -28,13 +34,11 @@ export type {
   GridDescriptor,
   GridGrouping,
   GridInstance,
-  GridInstanceOptions,
   GridSliceState,
   GridSort,
   GroupsState,
   RowChange,
   SelectionState,
-  StartListening,
   UpdateRowParams,
 } from "./features/dataGrid/types";
 
@@ -50,29 +54,29 @@ export { rowsKeyPrefix } from "./features/dataGrid/hooks/useRowPages";
 
 // ---------------------------------------------------------------- cells --
 
-export {
-  createCellRegistry,
-  type CellContext,
-  type CellRegistry,
-  type CellTypeDef,
-} from "./lib/grid/cellRegistry";
+/**
+ * A column names its cell by `type`, the way glide does.
+ *
+ * The five this package draws are prefixed `dg:` — `dg:text`, `dg:number`,
+ * `dg:date`, `dg:enum`, `dg:phone` — and each takes its settings on the
+ * column's own `options`. Glide's kinds are reachable under glide's own names,
+ * unprefixed: `text`, `number`, `boolean`, `uri`, `markdown`, `image`,
+ * `bubble`, `drilldown`.
+ *
+ * Nothing has to be registered for any of them. The options types below are
+ * exported because a host writes them into a `ColumnDef`, not because a host
+ * ever builds a cell.
+ */
+export type { TextCellOptions } from "./lib/grid/textCell";
+export type { NumberCellOptions } from "./lib/grid/numberCell";
+export type { DateCellOptions } from "./lib/grid/dateCell";
+export type { EnumCellOptions, EnumOption } from "./lib/grid/enumChoices";
+export type { PhoneCellOptions } from "./lib/grid/phoneCell";
 
-export { createTextCell, type TextCell, type TextCellData } from "./lib/grid/createTextCell";
-export {
-  createNumberCell,
-  type NumberCell,
-  type NumberCellData,
-} from "./lib/grid/createNumberCell";
-export { createDateCell, type DateCell, type DateCellData } from "./lib/grid/createDateCell";
-export {
-  createEnumCell,
-  type EnumCell,
-  type EnumCellData,
-  type EnumOption,
-} from "./lib/grid/createEnumCell";
-export { createPhoneCell, type PhoneCell, type PhoneCellData } from "./lib/grid/createPhoneCell";
+export type { NumberFormat } from "./lib/number/numberUtils";
+export type { TextValidationOptions } from "./lib/text/textValidation";
 
-/** For a cell kind this package does not ship. */
+/** For a cell kind this package does not ship. Register it on `descriptor.cells`. */
 export {
   createCustomCell,
   drawEmptyDash,
@@ -81,6 +85,8 @@ export {
   type CustomCellConfig,
   type EditorProps,
 } from "./lib/grid/createCustomCell";
+
+export type { CellContext, CellTypeDef } from "./lib/grid/cellRegistry";
 
 export { drawSoftBadge, type ResolvedBadgeColors } from "./lib/grid/softBadge";
 export { BADGE_SEQUENCE, radixColorByIndex, type RadixColor } from "./lib/grid/radixBadgePalette";
@@ -99,10 +105,7 @@ export {
   type DateRange,
 } from "./components/ui/datePicker";
 
-export {
-  DatePickerPopover,
-  type DatePickerPopoverProps,
-} from "./components/ui/datePickerPopover";
+export { DatePickerPopover, type DatePickerPopoverProps } from "./components/ui/datePickerPopover";
 
 // ---------------------------------------------------------------- theme --
 

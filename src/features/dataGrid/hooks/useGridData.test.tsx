@@ -89,7 +89,6 @@ function makeHarness(total: number, grouped = false) {
       ? { field: "g", of: (r: Row) => r.g, order: (g: number) => g, label: String }
       : undefined,
     api: { ...server.api, fetchRows, fetchCount },
-    cells: { makeCell: () => ({}), customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, number, number>;
 
   const queryClient = new QueryClient({

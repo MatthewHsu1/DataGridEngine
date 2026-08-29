@@ -58,7 +58,6 @@ function makeHarness(fetchRows: ReturnType<typeof vi.fn>) {
       updateRow: async () => ({ ok: false }),
       subscribe: () => () => {},
     },
-    cells: { makeCell: () => ({}) as never, customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, number, number>;
 
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -210,11 +209,6 @@ function makeEditHarness() {
       fetchCount: async () => rows.length,
       fetchRow: async () => null,
       updateRow,
-    },
-    cells: {
-      makeCell: () => ({}) as never,
-      customRenderers: [],
-      validateCell: () => true,
     },
   } as unknown as GridDescriptor<EditRow, number, number>;
 

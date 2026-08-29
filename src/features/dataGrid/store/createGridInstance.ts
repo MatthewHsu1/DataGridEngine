@@ -1,10 +1,10 @@
 // src/features/dataGrid/store/createGridInstance.ts
 import { combineReducers } from "@reduxjs/toolkit";
 import type { RowStore } from "../data/rowStore";
-import type { GridDescriptor, GridInstance, GridInstanceOptions, GridSliceState } from "../types";
+import type { GridDescriptor, GridInstance, GridSliceState } from "../types";
+import { resolveCellRegistry } from "../../../lib/grid/cellRegistry";
+import { resolveColumnsAdapter } from "./columnsAdapter";
 import { createColumnsSlice } from "./columnsSlice";
-import { registerEffects } from "./effects";
-import type { GridEffectContext } from "./effects/types";
 import { createEditsSlice } from "./editsSlice";
 import { createGroupsSlice } from "./groupsSlice";
 import { createSelectionSlice } from "./selectionSlice";
@@ -24,29 +24,26 @@ import { createSelectionSlice } from "./selectionSlice";
  * long-lived subscriber (data/sync/useRowSync.ts) reach the current store
  * without re-subscribing.
  *
- * `options.startListening` is the host app's listener middleware registration.
- * The engine owns no middleware of its own, so a grid that persists its column
- * layout has to be handed one.
+ * The descriptor is the ONLY argument. Column persistence used to need the host
+ * app's listener middleware passed in beside it; it now runs from the mounted
+ * grid instead (`hooks/useColumnPersistence.ts`), which is the only place that
+ * both reaches a store and knows the grid is on screen.
  */
 export function createGridInstance<
   TRow extends object,
   TGroup,
   TKey extends string | number = number,
->(
-  descriptor: GridDescriptor<TRow, TGroup, TKey>,
-  options: GridInstanceOptions = {},
-): GridInstance<TRow, TGroup, TKey> {
+>(descriptor: GridDescriptor<TRow, TGroup, TKey>): GridInstance<TRow, TGroup, TKey> {
   const name = descriptor.name;
 
-  // Fail at wiring time rather than at the first column resize. A missing
-  // listener means saveColumns is never called, and a layout that silently
-  // stops persisting is close to impossible to trace back to this line.
-  if (descriptor.api.saveColumns && !options.startListening) {
-    throw new Error(
-      `createGridInstance("${name}"): descriptor.api.saveColumns is set, so the grid needs the ` +
-        `host app's listener middleware. Pass { startListening: listenerMiddleware.startListening }.`,
-    );
-  }
+  // Resolved once, here, so the load on mount and every save afterwards cannot
+  // disagree about where this grid's layout lives.
+  const columnsAdapter = resolveColumnsAdapter(name, descriptor.columns);
+
+  // The built-in cell types with the descriptor's own laid over them, built
+  // once. A registry rebuilt per render would hand glide a new renderer array
+  // every time, and glide re-creates every editor when that array changes.
+  const cells = resolveCellRegistry(descriptor.cells);
 
   // Published by `useGridData` when a grid mounts. It stays null until then,
   // and a push that arrives first is dropped rather than written to a store no
@@ -65,10 +62,7 @@ export function createGridInstance<
 
   const groups = createGroupsSlice<TGroup>(name);
 
-  const columns = createColumnsSlice(name, {
-    defaultOrder: descriptor.columns.defaultOrder,
-    load: descriptor.api.loadColumns,
-  });
+  const columns = createColumnsSlice(name, { defaultOrder: descriptor.columns.defaultOrder });
 
   const selection = createSelectionSlice<TKey>(name);
 
@@ -82,26 +76,6 @@ export function createGridInstance<
   });
 
   const selectRoot = (s: unknown) => (s as Record<string, GridSliceState<TGroup, TKey>>)[name];
-
-  // Register every GridEffect for this instance on the shared grid listener.
-  const ctx: GridEffectContext<TRow, TGroup, TKey> = {
-    name,
-    descriptor,
-    selectRoot,
-    actions: {
-      columns: columns.actions,
-      groups: groups.actions,
-      selection: selection.actions,
-      edits: edits.actions,
-    },
-  };
-
-  // No listener and no saveColumns (the guard above rules out the other pair):
-  // there is nothing for an effect to do, so register nothing and hand back a
-  // stopEffects that is honestly a no-op.
-  const stopEffects = options.startListening
-    ? registerEffects(ctx, options.startListening)
-    : () => {};
 
   // A push that moves positions cannot patch a page-indexed cache in place, so
   // it invalidates every loaded page instead. Bumping a number rather than
@@ -149,10 +123,7 @@ export function createGridInstance<
     subscribeDataGeneration,
     getDataGeneration,
     bumpDataGeneration,
-    stopEffects,
-    thunks: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      loadColumns: columns.loadColumns as any,
-    },
+    columnsAdapter,
+    cells,
   };
 }

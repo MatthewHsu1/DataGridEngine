@@ -41,12 +41,6 @@ const GROUP_SIZE = 60;
  */
 const VISIBLE_FIELDS = ["name", "g"];
 
-function textCell(_type: string, raw: unknown): GridCell {
-  const text = String(raw ?? "");
-
-  return { kind: GridCellKind.Text, data: text, displayData: text, allowOverlay: true };
-}
-
 function cellText(cell: GridCell): string {
   if (cell.kind === GridCellKind.Text) {
     return cell.displayData;
@@ -188,7 +182,6 @@ function makeHarness(total: number, { grouped = false }: HarnessOptions = {}) {
       ? { field: "g", of: (r: Row) => r.g, order: (g: number) => g, label: String }
       : undefined,
     api: { ...server.api, updateRow, fetchRows },
-    cells: { makeCell: textCell, customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, number, number>;
 
   const queryClient = new QueryClient({

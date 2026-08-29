@@ -40,7 +40,6 @@ function harness({ grouped }: { grouped: boolean }) {
         }
       : undefined,
     api: server.api,
-    cells: { customRenderers: [], validateCell: () => true, make: () => undefined },
   } as unknown as GridDescriptor<Row, number, number>;
 
   const instance = createGridInstance(descriptor);

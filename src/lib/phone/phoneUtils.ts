@@ -6,6 +6,15 @@ import {
 } from "react-phone-number-input";
 
 /**
+ * The country assumed for a number typed or pasted without a `+` prefix, when a
+ * column names none.
+ *
+ * Here rather than beside the cell so the cell and its editor can both read it
+ * without importing each other.
+ */
+export const DEFAULT_PHONE_COUNTRY: Country = "US";
+
+/**
  * Format a phone value for canvas display, in international form.
  *
  * Already-E.164 values format directly. For legacy values stored in another

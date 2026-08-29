@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { createColumnsSlice } from "./columnsSlice";
-import type { ColumnsState } from "../types";
 
 const make = () => createColumnsSlice("test", { defaultOrder: ["a", "b", "c"] });
 
@@ -49,41 +48,6 @@ describe("createColumnsSlice", () => {
       expect(s.order).toEqual(["a", "b", "c"]);
       s = reducer(s, actions.setColumns({ order: [], widths: { a: 10 }, hidden: [] }));
       expect(s.order).toEqual(["a", "b", "c"]);
-    });
-  });
-
-  describe("loadColumns thunk", () => {
-    const drain = async (
-      thunk: ReturnType<ReturnType<typeof createColumnsSlice>["loadColumns"]>,
-    ) => {
-      const dispatched: unknown[] = [];
-      await thunk((a: unknown) => dispatched.push(a));
-      return dispatched;
-    };
-
-    it("dispatches setColumns with the loaded layout", async () => {
-      const loaded: ColumnsState = { order: ["c", "a", "b"], widths: { a: 12 }, hidden: ["b"] };
-      const { loadColumns } = createColumnsSlice("test", {
-        defaultOrder: ["a", "b", "c"],
-        load: async () => loaded,
-      });
-      const dispatched = await drain(loadColumns());
-      expect(dispatched).toEqual([
-        expect.objectContaining({ type: "test/columns/setColumns", payload: loaded }),
-      ]);
-    });
-
-    it("no-ops when no load hook is provided", async () => {
-      const { loadColumns } = make();
-      expect(await drain(loadColumns())).toEqual([]);
-    });
-
-    it("no-ops when load resolves to null", async () => {
-      const { loadColumns } = createColumnsSlice("test", {
-        defaultOrder: ["a"],
-        load: async () => null,
-      });
-      expect(await drain(loadColumns())).toEqual([]);
     });
   });
 

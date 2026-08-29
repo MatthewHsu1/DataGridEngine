@@ -244,16 +244,27 @@ export function useCellRenderer<TRow extends object, TGroup, TKey extends string
       const def = defs[field];
       const raw = (row as unknown as Record<string, unknown>)[field];
 
-      const built = descriptor.cells.makeCell(def.type, raw, {
+      const built = instance.cells.makeCell(def.type, raw, {
         editable: def.editable,
-        withTime: def.withTime ?? false,
+        options: def.options,
       });
 
       const content = withHighlight(`${cell.dataIndex}:${field}`, built);
 
       return isPending(descriptor.rowKey(row)) ? withPendingTint(content) : content;
     },
-    [model, visibleFields, columnCount, theme, rowAt, isPending, withHighlight, descriptor, defs],
+    [
+      model,
+      visibleFields,
+      columnCount,
+      theme,
+      rowAt,
+      isPending,
+      withHighlight,
+      instance,
+      descriptor,
+      defs,
+    ],
   );
 
   const onCellEdited = useCallback(

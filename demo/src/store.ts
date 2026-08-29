@@ -1,6 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { appearanceReducer } from "@matthewhsu1/datagrid";
-import { appListener } from "./listener";
 import { GRID_NAME, testGrid } from "./grid/testGrid";
 
 /**
@@ -12,6 +11,9 @@ import { GRID_NAME, testGrid } from "./grid/testGrid";
  *
  * serializableCheck is off because grid state is not serializable: row windows
  * hold arbitrary row objects and group keys are caller-defined.
+ *
+ * No listener middleware. The engine needs none: column persistence runs from
+ * the mounted grid.
  */
 export const store = configureStore({
   reducer: {
@@ -20,8 +22,7 @@ export const store = configureStore({
     // reducer map to a string index, which unions every slice's state together.
     [GRID_NAME]: testGrid.reducer,
   },
-  middleware: (getDefault) =>
-    getDefault({ serializableCheck: false }).concat(appListener.middleware),
+  middleware: (getDefault) => getDefault({ serializableCheck: false }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

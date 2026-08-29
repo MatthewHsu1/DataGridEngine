@@ -50,7 +50,6 @@ function makeHarness() {
       fetchRow: async () => null,
       updateRow: async () => ({ ok: true }),
     },
-    cells: { makeCell: () => ({}) as never, customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, number>;
 
   const instance = createGridInstance(descriptor);

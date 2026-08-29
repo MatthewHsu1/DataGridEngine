@@ -10,12 +10,7 @@ import {
 } from "../displayModel";
 import { headerPlacements } from "../headerPlacements";
 import type { GroupHeaderLayerHandle, HeaderPlacement } from "../GroupHeaderLayer";
-import {
-  COLUMN_HEADER_HEIGHT,
-  DEFAULT_GROUP_HEADER_HEIGHT,
-  DEFAULT_ROW_HEIGHT,
-  rowHeightFor,
-} from "../rowHeights";
+import { DEFAULT_GROUP_HEADER_HEIGHT, DEFAULT_ROW_HEIGHT, rowHeightFor } from "../rowHeights";
 import type { GridGrouping } from "../types";
 
 interface Args<TRow, TGroup> {
@@ -37,6 +32,16 @@ interface Args<TRow, TGroup> {
 
   /** The grid itself, for putting a folded group's header back under the eye. */
   gridRef: React.RefObject<DataEditorRef | null>;
+
+  /**
+   * The height of the grid's own column-header row.
+   *
+   * Every hole is measured DOWN from this line, so it has to be the same number
+   * `<DataEditor headerHeight>` was given. A host raising the header through
+   * `<DataGrid headerHeight>` therefore has to move this too, which is why it
+   * arrives as an argument rather than being read from the constant.
+   */
+  columnHeaderHeight: number;
 }
 
 interface Result<TGroup> {
@@ -92,6 +97,7 @@ export function useGroupHeaders<TRow, TGroup>({
   collapsedGroups,
   grouping,
   gridRef,
+  columnHeaderHeight,
 }: Args<TRow, TGroup>): Result<TGroup> {
   const layerRef = useRef<GroupHeaderLayerHandle>(null);
 
@@ -170,13 +176,13 @@ export function useGroupHeaders<TRow, TGroup>({
       placements.current = headerPlacements(next, {
         firstRow: rect.y,
         translateY,
-        headerHeight: COLUMN_HEADER_HEIGHT,
+        headerHeight: columnHeaderHeight,
         heightOf: rowHeight,
       });
 
       layerRef.current?.place(placements.current);
     },
-    [rowHeight],
+    [rowHeight, columnHeaderHeight],
   );
 
   const trackRegion = useCallback(
