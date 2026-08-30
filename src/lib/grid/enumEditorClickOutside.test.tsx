@@ -1,15 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createEnumCell } from "./createEnumCell";
+import { enumCellRenderer, makeEnumCell } from "./enumCell";
 
-const cell = createEnumCell({
-  kind: "enum-click-outside-test",
-  options: [
+const options = {
+  choices: [
     { value: 1, label: "One" },
     { value: 2, label: "Two" },
   ],
-});
+};
 
 /**
  * Glide's own outside-click test, copied from
@@ -35,7 +34,7 @@ function glideWouldCloseTheEditor(target: Element | null): boolean {
 
 function renderEditor() {
   const onFinishedEditing = vi.fn();
-  const provided = cell.renderer.provideEditor?.(cell.makeCell(1));
+  const provided = enumCellRenderer.provideEditor?.(makeEnumCell(1, options));
 
   const Editor = (
     typeof provided === "function" ? provided : (provided as { editor: unknown })?.editor
@@ -43,7 +42,7 @@ function renderEditor() {
 
   render(
     <Editor
-      value={cell.makeCell(1)}
+      value={makeEnumCell(1, options)}
       onChange={() => {}}
       onFinishedEditing={onFinishedEditing}
       forceEditMode

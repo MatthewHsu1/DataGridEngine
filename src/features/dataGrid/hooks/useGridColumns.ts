@@ -1,6 +1,6 @@
 // src/features/dataGrid/hooks/useGridColumns.ts
 import { type GridColumn, GridColumnMenuIcon } from "@glideapps/glide-data-grid";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { SORT_ASC_ICON, SORT_DESC_ICON } from "../headerIcons";
 import { sortablePredicate } from "../sortable";
@@ -23,16 +23,9 @@ export function useGridColumns<TRow extends object, TGroup, TKey extends string 
 
   const sort = useSelector((s: unknown) => instance.selectRoot(s).groups.sort);
 
-  useEffect(() => {
-    dispatch(instance.thunks.loadColumns());
-  }, [dispatch, instance]);
-
   const visibleFields = useMemo(() => order.filter((f) => !hidden.includes(f)), [order, hidden]);
 
-  const sortable = useMemo(
-    () => sortablePredicate(defs),
-    [defs],
-  );
+  const sortable = useMemo(() => sortablePredicate(defs), [defs]);
 
   const columns: GridColumn[] = useMemo(
     () =>

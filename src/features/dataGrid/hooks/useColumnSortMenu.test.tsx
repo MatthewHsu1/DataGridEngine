@@ -37,7 +37,6 @@ function harness() {
       defaultOrder: FIELDS,
     },
     api: { updateRow: async () => ({ ok: true }) },
-    cells: { makeCell: () => ({}) as never, customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, never, number>;
 
   const instance = createGridInstance(descriptor);
@@ -77,8 +76,7 @@ function harness() {
 const openArrow = (field: string) =>
   userEvent.click(screen.getByRole("button", { name: `arrow ${field}` }));
 
-const pick = async (name: RegExp) =>
-  userEvent.click(await screen.findByRole("menuitem", { name }));
+const pick = async (name: RegExp) => userEvent.click(await screen.findByRole("menuitem", { name }));
 
 describe("useColumnSortMenu", () => {
   it("opens the menu on the column whose arrow was pressed", async () => {

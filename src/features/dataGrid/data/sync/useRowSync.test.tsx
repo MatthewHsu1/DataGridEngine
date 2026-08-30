@@ -44,7 +44,6 @@ function harness(store: RowStore<Row, number> = loadedStore()) {
     rowKey: (r: Row) => r.id,
     columns: { defs: {}, defaultOrder: [] },
     api: server.api,
-    cells: { makeCell: () => ({}) as never, customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, never, number>;
 
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

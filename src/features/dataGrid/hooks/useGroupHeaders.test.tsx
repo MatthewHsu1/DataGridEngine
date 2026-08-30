@@ -86,7 +86,13 @@ function mount(initialProps: Props, grouping: GridGrouping<Row, number> | undefi
 
   const view = renderHook(
     ({ m, collapsed }: Props) =>
-      useGroupHeaders({ model: m, collapsedGroups: collapsed, grouping, gridRef }),
+      useGroupHeaders({
+        model: m,
+        collapsedGroups: collapsed,
+        grouping,
+        gridRef,
+        columnHeaderHeight: 36,
+      }),
     { initialProps },
   );
 
@@ -112,6 +118,7 @@ function mountFlat(model: DisplayModel<number>) {
       collapsedGroups: [],
       grouping: undefined,
       gridRef,
+      columnHeaderHeight: 36,
     }),
   );
 

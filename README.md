@@ -10,8 +10,10 @@ column layout, and typed cell editors — all against a server that holds far
 more rows than the browser ever will.
 
 > **Status: 0.x.** The API will break between minor versions. It is pinned to a
-> **pre-release** build of glide-data-grid (`6.0.4-alpha24`); that pin loosens
-> when glide 6 ships stable.
+> **pre-release** build of glide-data-grid (`6.0.4-alpha24`). This is not a
+> choice: glide's latest stable release, `6.0.3`, declares a React peer of
+> `^16.12.0 || 17.x || 18.x`. React 19 support first appears in the `6.0.4`
+> alpha line. The pin loosens when glide ships a stable `6.0.4`.
 
 ## What it looks like
 
@@ -66,25 +68,51 @@ import "@matthewhsu1/datagrid/datagrid.css";
 // 2. Point the grid at your accent, once, before the first grid renders.
 configureGridTheme({ accentColor: "grass", grayColor: "slate" });
 
-// 3. Describe one grid.
-const orderGrid = createGridInstance(
-  {
-    name: "orders",
-    rowKey: (row) => row.id,
-    columns: { defs: COLUMN_DEFS, defaultOrder: DEFAULT_ORDER },
-    cells: orderCells,
-    api: { fetchRows, fetchCount, fetchRow, updateRow },
+// 3. Describe the columns. Each names its cell by type, the way glide does.
+const COLUMN_DEFS = {
+  reference: {
+    field: "reference",
+    title: "Ref",
+    defaultWidth: 160,
+    editable: false,
+    type: "dg:text",
   },
-  { startListening: listenerMiddleware.startListening },
-);
+  total: {
+    field: "total",
+    title: "Total",
+    defaultWidth: 120,
+    editable: true,
+    type: "dg:number",
+    options: { format: "currency", currency: "USD" },
+  },
+  customer: {
+    field: "customer",
+    title: "Customer",
+    defaultWidth: 200,
+    editable: true,
+    type: "text",
+  }, // one of glide's own kinds
+};
 
-// 4. Mount its reducer under the descriptor's name, then render.
+// 4. Describe one grid.
+const orderGrid = createGridInstance({
+  name: "orders",
+  rowKey: (row) => row.id,
+  columns: { defs: COLUMN_DEFS, defaultOrder: ["reference", "total", "customer"] },
+  api: { fetchRows, fetchCount, fetchRow, updateRow },
+});
+
+// 5. Mount its reducer under the descriptor's name, then render.
 //    <DataGrid instance={orderGrid} />
 ```
 
-The grid needs a Redux store, your listener middleware, and a
-`QueryClientProvider` above it. It creates its own `<div id="portal">` if your
-page has none — without one, no cell can be edited and nothing says so.
+Nothing registers a cell: the five the engine draws are prefixed `dg:`, glide's
+own kinds keep glide's own names, and the user's column layout is remembered in
+Web Storage on its own.
+
+The grid needs a Redux store and a `QueryClientProvider` above it. It creates
+its own `<div id="portal">` if your page has none — without one, no cell can be
+edited and nothing says so.
 
 ## Run the demo
 
@@ -114,7 +142,7 @@ changing anything in `src/features/dataGrid/`.
 ## Develop
 
 ```bash
-npm test           # 615 tests
+npm test           
 npm run typecheck
 npm run check:docs # typechecks every code block in docs/
 npm run lint

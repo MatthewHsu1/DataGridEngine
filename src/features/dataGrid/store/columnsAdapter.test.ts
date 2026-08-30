@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ColumnsState } from "../types";
-import { localStorageColumnsAdapter } from "./localStorageColumnsAdapter";
+import { localStorageColumnsAdapter } from "./columnsAdapter";
 
 // Fake storage backed by a Map
 function createFakeStorage(): Pick<Storage, "getItem" | "setItem"> {

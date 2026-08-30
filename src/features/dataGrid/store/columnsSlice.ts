@@ -1,11 +1,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ColumnsState } from "../types";
 
-export function createColumnsSlice(
-  name: string,
-  opts: { defaultOrder: string[]; load?: () => Promise<ColumnsState | null> },
-) {
-  const { defaultOrder, load } = opts;
+export function createColumnsSlice(name: string, opts: { defaultOrder: string[] }) {
+  const { defaultOrder } = opts;
   const initialState: ColumnsState = { order: [...defaultOrder], widths: {}, hidden: [] };
 
   const slice = createSlice({
@@ -51,16 +48,5 @@ export function createColumnsSlice(
     },
   });
 
-  // loadColumns thunk — hydrate from descriptor.api.loadColumns (if any) on mount.
-  // Single-slice: only dispatches this slice's setColumns, so it lives with the slice.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const loadColumns = () => async (dispatch: any) => {
-    if (!load) return;
-
-    const loaded = await load();
-
-    if (loaded) dispatch(slice.actions.setColumns(loaded));
-  };
-
-  return { reducer: slice.reducer, actions: slice.actions, loadColumns };
+  return { reducer: slice.reducer, actions: slice.actions };
 }

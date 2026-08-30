@@ -44,7 +44,6 @@ function makeHarness(total: number) {
     pageSize: PAGE,
     columns: { defs: {}, defaultOrder: [] },
     api: { ...server.api, fetchRows },
-    cells: { makeCell: () => ({}), customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, number, number>;
 
   const queryClient = new QueryClient({

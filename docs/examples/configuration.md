@@ -118,31 +118,50 @@ neither gets a permanently light grid rather than a crash.
 
 ## 5. Cells
 
-A **cell kind** names how one column draws and edits. Build each maker **once at
-module scope**, never inside a render: the editor component's identity is tied
-to the call, so rebuilding it per render remounts the editor on every keystroke.
+A column names its cell the way glide does: a string in `ColumnDef.type`. There
+is nothing to build, nothing to register, and no factory to call at module
+scope. Each cell's settings ride on that column's own `options`.
 
-Every `kind` must be unique across the grid. The registry routes drawing and
-validation by `cell.data.kind`, so two makers sharing a kind behave as one.
+The five this package draws are prefixed `dg:`. Glide's own kinds are reachable
+under glide's own names, unprefixed. The prefix is what keeps the two sets apart
+for good — glide may add kinds to its set without ever colliding with ours.
 
-### Text
+| `type`         | Drawn by | Edits | Options |
+| -------------- | -------- | ----- | ------- |
+| `dg:text`      | engine   | yes   | `TextCellOptions` |
+| `dg:number`    | engine   | yes   | `NumberCellOptions` |
+| `dg:date`      | engine   | yes   | `DateCellOptions` |
+| `dg:enum`      | engine   | yes   | `EnumCellOptions` (required) |
+| `dg:phone`     | engine   | yes   | `PhoneCellOptions` |
+| `text`         | glide    | yes   | none |
+| `number`       | glide    | yes   | none |
+| `boolean`      | glide    | yes   | none |
+| `uri`          | glide    | yes   | none |
+| `markdown`     | glide    | yes   | none |
+| `image`        | glide    | no    | none |
+| `bubble`       | glide    | no    | none |
+| `drilldown`    | glide    | no    | none |
 
-```ts
-import { createTextCell } from "@matthewhsu1/datagrid";
+`image`, `bubble`, and `drilldown` read a list. Give them a `string[]`, or a
+single string that the engine wraps for you — a row field like `avatarUrl` needs
+no mapping. All three are read-only whatever the column's `editable` says.
 
-export const referenceCell = createTextCell({
-  kind: "reference", // REQUIRED. Unique across the grid.
-  validation: {
+### `dg:text`
+
+```ts no-check
+{
+  type: "dg:text",
+  options: {
     required: true, // default false. Empty fails. This cell's "nullable".
     minLength: 3,   // default undefined. Shortest accepted string.
     maxLength: 32,  // default undefined. Longest accepted string.
     email: false,   // default false. Pragmatic check, not full RFC 5322.
     pattern: { value: /^ORD-/, message: "Must start with ORD-" },
     // ^ default undefined. A bare RegExp works too; then the message is generic.
-    validate: (value) => (value.endsWith("!") ? "No exclamation marks" : null),
+    validate: (value: string) => (value.endsWith("!") ? "No exclamation marks" : null),
     // ^ default undefined. Escape hatch. Return a message, or null when valid.
   },
-});
+}
 ```
 
 Rules run in one fixed order and the editor shows the **first** failure:
@@ -150,84 +169,87 @@ Rules run in one fixed order and the editor shows the **first** failure:
 empty string is valid unless `required`, and when empty-and-optional the
 remaining rules are skipped entirely.
 
-### Number
+### `dg:number`
 
-```ts
-import { createNumberCell } from "@matthewhsu1/datagrid";
-
-export const totalCell = createNumberCell({
-  kind: "total",           // REQUIRED. Unique across the grid.
-  nullable: false,         // default false. true lets the user clear the cell.
-  format: "currency",      // default undefined. "integer" | "decimal" | "currency".
-  decimalScale: 2,         // default undefined. Digits after the point.
-  currency: "USD",         // default undefined. ISO code; used by format "currency".
-  min: 0,                  // default undefined. Editor blocks entry below this.
-  max: 1_000_000,          // default undefined. Editor blocks entry above this.
-  thousandSeparator: true, // default undefined. Group digits by locale.
-  prefix: undefined,       // default undefined. Text drawn before the number.
-  suffix: undefined,       // default undefined. Text drawn after the number.
-});
+```ts no-check
+{
+  type: "dg:number",
+  options: {
+    nullable: false,         // default false. true lets the user clear the cell.
+    format: "currency",      // default undefined. "integer" | "decimal" | "currency".
+    decimalScale: 2,         // default undefined. Digits after the point.
+    currency: "USD",         // default undefined. ISO code; used by format "currency".
+    min: 0,                  // default undefined. Editor blocks entry below this.
+    max: 1_000_000,          // default undefined. Editor blocks entry above this.
+    thousandSeparator: true, // default undefined. Group digits by locale.
+    prefix: undefined,       // default undefined. Text drawn before the number.
+    suffix: undefined,       // default undefined. Text drawn after the number.
+  },
+}
 ```
 
 `min` and `max` guard **entry**, not the stored data. A row that already holds
 an out-of-range value still draws it; the range only stops the user typing a new
 one.
 
-### Date
+### `dg:date`
 
-```ts
-import { createDateCell } from "@matthewhsu1/datagrid";
-
-export const placedAtCell = createDateCell({
-  kind: "placedAt", // REQUIRED. Unique across the grid.
-  nullable: true,   // default false. true lets the user confirm an empty date.
-});
+```ts no-check
+{
+  type: "dg:date",
+  options: {
+    nullable: true,  // default false. true lets the user confirm an empty date.
+    withTime: false, // default false. true keeps the time part.
+  },
+}
 ```
 
-Values are stored as canonical UTC ISO strings. Whether a column keeps the time
-part is **not** set here — it is `withTime` on the column (section 6), because
-one date cell can serve both a date column and a datetime column.
+Values are stored as canonical UTC ISO strings. `withTime` is per column, which
+is why it lives here rather than on the column itself.
 
 The editor holds the edit: a click on a day changes nothing until the user
 presses OK. Cancel and Escape discard.
 
-### Enum
+### `dg:enum`
 
-```ts
-import { createEnumCell } from "@matthewhsu1/datagrid";
-
-export const statusCell = createEnumCell({
-  kind: "status",  // REQUIRED. Unique across the grid.
-  nullable: false, // default false. true adds a "clear" item to the Select.
-  options: [
-    // REQUIRED. The full set of selectable values.
-    { value: 0, label: "Draft" },                // color defaults by value.
-    { value: 1, label: "Paid", color: "green" }, // color: any RADIX_BADGE_SCALES entry.
-    { value: 2, label: "Void", color: "red" },
-  ],
-});
+```ts no-check
+{
+  type: "dg:enum",
+  options: {
+    nullable: false, // default false. true adds a "clear" item to the Select.
+    choices: [
+      // REQUIRED. The full set of selectable values.
+      { value: 0, label: "Draft" },                // color defaults by value.
+      { value: 1, label: "Paid", color: "green" }, // color: any RADIX_BADGE_SCALES entry.
+      { value: 2, label: "Void", color: "red" },
+    ],
+  },
+}
 ```
 
 `value` must be a **number**. An unlisted value draws as an empty cell.
 
 An omitted `color` falls back to `BADGE_SEQUENCE[value % 10]`, so colours stay
-stable as you add options at the end. A `color` outside `RADIX_BADGE_SCALES`
+stable as you add choices at the end. A `color` outside `RADIX_BADGE_SCALES`
 resolves to nothing and warns; adding a new scale means adding its token CSS to
 `src/theme/radixStyles.ts` **and** the scale to `RADIX_BADGE_SCALES`.
 
 The usable scales are: `iris`, `tomato`, `amber`, `grass`, `cyan`, `plum`,
 `orange`, `jade`, `crimson`, `indigo`, `red`, `green`.
 
-### Phone
+Grouping by a `dg:enum` column colours the group headers from these choices on
+its own — see section 8.
 
-```ts
-import { createPhoneCell } from "@matthewhsu1/datagrid";
+### `dg:phone`
 
-export const phoneCell = createPhoneCell({
-  kind: "phone",        // REQUIRED. Unique across the grid.
-  nullable: true,       // default false. true lets the user clear the cell.
-  defaultCountry: "US", // default "US". ISO 3166-1 alpha-2, for un-prefixed input.
-});
+```ts no-check
+{
+  type: "dg:phone",
+  options: {
+    nullable: true,       // default false. true lets the user clear the cell.
+    defaultCountry: "US", // default "US". ISO 3166-1 alpha-2, for un-prefixed input.
+  },
+}
 ```
 
 Values are stored canonically as E.164 (`+14155552671`). Any non-empty value
@@ -235,16 +257,31 @@ must parse as a valid number; `nullable` decides only whether empty is allowed.
 
 ### A cell kind the package does not ship
 
+Build the renderer with `createCustomCell`, then hand the engine a `CellTypeDef`
+on `descriptor.cells` (section 7).
+
 ```tsx
-import { createCustomCell, drawEmptyDash, makeCustomCell } from "@matthewhsu1/datagrid";
+import {
+  createCustomCell,
+  drawEmptyDash,
+  makeCustomCell,
+  type CellContext,
+  type CellTypeDef,
+} from "@matthewhsu1/datagrid";
+
+/** This cell's own settings, read off the column's `options`. */
+interface RatingOptions {
+  max: number;
+}
 
 interface RatingData {
   kind: "rating"; // REQUIRED. Literal type; routes glide's isMatch.
   value: number | null;
   readOnly?: boolean;
+  options: RatingOptions;
 }
 
-export const ratingRenderer = createCustomCell<RatingData>({
+const ratingRenderer = createCustomCell<RatingData>({
   kind: "rating", // REQUIRED. Must equal cell.data.kind at runtime.
   draw: (args, data) => {
     // REQUIRED. Canvas only — no DOM reaches a cell.
@@ -257,6 +294,7 @@ export const ratingRenderer = createCustomCell<RatingData>({
     // REQUIRED. Real DOM — use Radix here.
     <input
       type="number"
+      max={value.options.max}
       defaultValue={value.value ?? 0}
       onChange={(e) => onChange({ ...value, value: Number(e.target.value) })}
     />
@@ -268,84 +306,70 @@ export const ratingRenderer = createCustomCell<RatingData>({
   },
 });
 
-export const makeRatingCell = (value: number | null, allowOverlay = true) =>
-  makeCustomCell<RatingData>({ kind: "rating", value }, String(value ?? ""), allowOverlay);
-//                          ^ data          ^ copyData (what Ctrl+C yields)  ^ default true
+export const ratingCellDef: CellTypeDef = {
+  type: "rating", // REQUIRED. What a column's `type` names.
+  kind: "rating", // default undefined. Needed only to route `validate`.
+  renderer: ratingRenderer as unknown as CellTypeDef["renderer"],
+  // ^ default undefined. Custom cells need it. See the note below on the cast.
+  make: (raw: unknown, ctx: CellContext) =>
+    makeCustomCell<RatingData>(
+      {
+        kind: "rating",
+        value: raw == null ? null : Number(raw),
+        options: ctx.options as RatingOptions,
+        ...(ctx.editable ? {} : { readOnly: true }),
+      },
+      String(raw ?? ""), // copyData — what Ctrl+C yields
+      ctx.editable,
+    ),
+  validate: (cell) => (cell.data as unknown as RatingData).value !== 0,
+  // ^ default undefined. Gates commit and paste. Omit and the value commits as typed.
+};
 ```
 
 Cells are painted on a `<canvas>`, so `draw` gets no DOM components. The
 **editor** is real DOM, and it should be built from `@radix-ui/themes` like the
 built-in ones.
 
-### The registry
-
-One place maps a column's `type` to its maker. Build it once.
-
-```ts
-import { createCellRegistry, type CellContext, type CellTypeDef } from "@matthewhsu1/datagrid";
-import type { CustomRenderer } from "@glideapps/glide-data-grid";
-import { placedAtCell, referenceCell, statusCell, totalCell } from "./shared";
-
-export const orderCells = createCellRegistry(
-  [
-    {
-      type: "text",      // REQUIRED. Matches ColumnDef.type.
-      kind: "reference", // default undefined. Needed only to route `validate`.
-      make: (raw: unknown, ctx: CellContext) =>
-        referenceCell.makeCell(raw == null ? null : String(raw), ctx.editable),
-      // ^ REQUIRED. ctx is { editable, withTime } for the column being drawn.
-      renderer: referenceCell.renderer, // default undefined. Custom cells need it.
-      validate: referenceCell.validate, // default undefined. Gates commit and paste.
-    },
-    {
-      type: "currency",
-      kind: "total",
-      make: (raw: unknown, ctx: CellContext) =>
-        totalCell.makeCell(raw == null ? null : Number(raw), ctx.editable),
-      renderer: totalCell.renderer,
-      validate: totalCell.validate,
-    },
-    {
-      type: "date",
-      kind: "placedAt",
-      // `withTime` comes from the COLUMN, which is why make receives ctx.
-      make: (raw: unknown, ctx: CellContext) =>
-        placedAtCell.makeCell(raw == null ? null : String(raw), ctx.withTime, ctx.editable),
-      renderer: placedAtCell.renderer,
-      validate: placedAtCell.validate,
-    },
-    {
-      type: "status",
-      make: (raw: unknown, ctx: CellContext) =>
-        statusCell.makeCell(raw == null ? null : Number(raw), ctx.editable),
-      renderer: statusCell.renderer, // enum cells expose no `validate`.
-    },
-  ].map(
-    // The two casts below are load-bearing. See the note under this block.
-    (d): CellTypeDef => ({
-      ...d,
-      renderer: d.renderer as unknown as CustomRenderer,
-      validate: d.validate as unknown as CellTypeDef["validate"],
-    }),
-  ),
-);
-```
-
-`type` is what a column names; `kind` is what a rendered cell carries. They are
-allowed to differ, and often should: two columns can share the `date` type while
-each holds its own cell kind.
-
-**The two casts are required, and they are safe.** `CellTypeDef.renderer` and
-`CellTypeDef.validate` are unparameterized, while a maker's `renderer` and
-`validate` are typed to that cell's own payload. Under `strictFunctionTypes` the
-two are incomparable in **either** direction, so no annotation removes the cast.
-Casting those two fields only — rather than the whole def through `unknown` —
-keeps the structural check on `type`, `kind`, and `make`. Runtime routing is by
-`cell.data.kind` through each renderer's `isMatch`, which the cast does not
+**The renderer cast is required, and it is safe.** `CellTypeDef.renderer` is
+unparameterized, while `createCustomCell` types its renderer to that cell's own
+payload. Under `strictFunctionTypes` the two are incomparable in **either**
+direction, so no annotation removes the cast. Runtime routing is by
+`cell.data.kind` through the renderer's own `isMatch`, which the cast does not
 touch.
 
-Omit `validate` and nothing is gated: the value commits as typed. `kind` is only
-read to route `validate`, so an entry with neither needs neither.
+`type` is what a column names; `kind` is what a rendered cell carries. They are
+allowed to differ. A def whose `type` matches a built-in **replaces** that
+built-in for that grid, which is how you change a cell the engine draws without
+forking the package.
+
+A column pointing at it must say `custom: true`:
+
+```ts
+import type { ColumnDef } from "@matthewhsu1/datagrid";
+
+export const ratingColumn: ColumnDef = {
+  field: "rating",
+  title: "Rating",
+  defaultWidth: 120,
+  editable: true,
+  type: "rating",  // REQUIRED. Matches your CellTypeDef.type.
+  custom: true,    // REQUIRED for a type this package does not ship.
+  options: { max: 5 }, // whatever your cell reads; `unknown` to the engine.
+};
+```
+
+**That one word is what makes every other column check.** Without it, `type`
+would have to accept any string, and TypeScript would then accept a mistyped
+`type`, a mistyped key inside a built-in's `options`, and a `dg:enum` with no
+choices — all silently. With `custom` as the marker, each of those is an error:
+
+```ts no-check
+{ type: "dg:numbr" }                       // ✗ not a cell type, and not custom
+{ type: "dg:number", options: { currncy } } // ✗ `currncy` is not an option
+{ type: "dg:enum" }                        // ✗ dg:enum must say what it holds
+{ type: "dg:text", options: { withTime } }  // ✗ withTime belongs to dg:date
+```
 
 ---
 
@@ -362,22 +386,45 @@ export const COLUMN_DEFS: Record<string, ColumnDef> = {
     title: "Reference", // REQUIRED. Header text.
     defaultWidth: 160,  // REQUIRED. Pixels, before the user resizes.
     editable: false,    // REQUIRED. Whether a cell here accepts an edit.
-    type: "text",       // REQUIRED. Must match a cell registry entry.
+    type: "dg:text",    // REQUIRED. Names the cell. See section 5.
     sortable: true,     // default true. false hides this column's sort menu.
+    options: { required: true }, // this cell type's own settings.
   },
-  total: { field: "total", title: "Total", defaultWidth: 120, editable: true, type: "currency" },
+  total: {
+    field: "total",
+    title: "Total",
+    defaultWidth: 120,
+    editable: true,
+    type: "dg:number",
+    options: { format: "currency", currency: "USD" },
+  },
   placedAt: {
     field: "placedAt",
     title: "Placed",
     defaultWidth: 180,
     editable: true,
-    type: "date",
-    withTime: true, // default false. Date cells only: keep the time part.
+    type: "dg:date",
+    options: { nullable: true, withTime: true },
+  },
+  customer: {
+    field: "customer",
+    title: "Customer",
+    defaultWidth: 200,
+    editable: true,
+    type: "text", // one of glide's own kinds, drawn by glide
   },
 };
 
-export const DEFAULT_ORDER = ["reference", "total", "placedAt"];
+export const DEFAULT_ORDER = ["reference", "total", "placedAt", "customer"];
 ```
+
+The five fields above `type` are read by the **grid** — the header, the layout,
+the sort menu, the edit path. `options` is read only by the cell the `type`
+names, which is why a setting like `withTime` lives there.
+
+`type` and `options` are checked **together**: pick `dg:enum` and TypeScript
+insists on its `choices`; pick `dg:date` and only date options are accepted. A
+type this package does not ship needs `custom: true` beside it — see section 5.
 
 Set `sortable: false` for any column the **server** cannot order by — one your
 client derives, or one with no index behind it. The sort is sent to the server,
@@ -391,12 +438,8 @@ The static description of one grid. Written by the host, never by the engine.
 
 ```ts
 import type { GridDescriptor } from "@matthewhsu1/datagrid";
-import { localStorageColumnsAdapter } from "@matthewhsu1/datagrid";
-import { COLUMN_DEFS, DEFAULT_ORDER, orderCells } from "./shared";
+import { COLUMN_DEFS, DEFAULT_ORDER } from "./shared";
 import { fetchCount, fetchRow, fetchRows, subscribe, updateRow, type OrderRow } from "./shared";
-
-const columns = localStorageColumnsAdapter("orders:columns");
-// ^ (storageKey, storage = localStorage). Swap in a REST adapter of the same shape.
 
 export const orderDescriptor: GridDescriptor<OrderRow, never, number> = {
   name: "orders",          // REQUIRED. Store namespace + storage-key prefix. Unique, stable.
@@ -404,21 +447,45 @@ export const orderDescriptor: GridDescriptor<OrderRow, never, number> = {
   columns: {
     defs: COLUMN_DEFS,           // REQUIRED. All columns, keyed by field.
     defaultOrder: DEFAULT_ORDER, // REQUIRED. Left-to-right order before the user reorders.
+    persist: true,               // default true. false forgets the user's layout on reload.
+    adapter: undefined,          // default undefined. Your own storage; see below.
   },
-  cells: orderCells, // REQUIRED. Looked up by ColumnDef.type.
+  cells: undefined,  // default undefined. Cell types BEYOND the built-in ones.
   pageSize: 100,     // default 100. Rows per loaded page.
   api: {
-    fetchRows,                        // REQUIRED. One ordered slice. See the note below.
-    fetchCount,                       // REQUIRED. Total under the current view.
-    fetchRow,                         // REQUIRED. One row by id, for an id-only push.
-    updateRow,                        // REQUIRED. Persist one cell edit. { ok: false } rolls back.
-    subscribe,                        // default undefined. Live feed; returns an unsubscribe.
-    loadColumns: columns.loadColumns, // default undefined. Omit to always start from defaults.
-    saveColumns: columns.saveColumns, // default undefined. Needs startListening — section 9.
+    fetchRows,  // REQUIRED. One ordered slice. See the note below.
+    fetchCount, // REQUIRED. Total under the current view.
+    fetchRow,   // REQUIRED. One row by id, for an id-only push.
+    updateRow,  // REQUIRED. Persist one cell edit. { ok: false } rolls back.
+    subscribe,  // default undefined. Live feed; returns an unsubscribe.
   },
   // grouping: omitted here. See section 8.
 };
 ```
+
+**Column layout is remembered by default.** With `persist` and `adapter` both
+left out, the engine writes the user's order, widths, and hidden columns to Web
+Storage under `datagrid:${name}:columns`. Nothing to wire, and no middleware.
+
+Keep them somewhere else with an adapter of your own:
+
+```ts
+import type { ColumnsAdapter, ColumnsState } from "@matthewhsu1/datagrid";
+
+export const serverColumns: ColumnsAdapter = {
+  async loadColumns(): Promise<ColumnsState | null> {
+    const res = await fetch("/api/grid-layout/orders");
+    return res.ok ? ((await res.json()) as ColumnsState) : null;
+  },
+  async saveColumns(state: ColumnsState): Promise<void> {
+    await fetch("/api/grid-layout/orders", { method: "PUT", body: JSON.stringify(state) });
+  },
+};
+```
+
+Both calls are `async` whatever is behind them, so the engine has one thing to
+await. Saves are debounced 500 ms after the user stops, so a column drag is one
+write and not one per pixel.
 
 `fetchRows` asks for a **slice of an order**, never for a numbered page. The
 `sort` it receives is a `SortSpec` (`{ field, direction, nulls }`) or `null`.
@@ -450,6 +517,7 @@ export const byRegion: GridGrouping<OrderRow, string> = {
   order: (g) => REGIONS.indexOf(g), // REQUIRED. MUST agree with `field` ascending.
   label: (g) => `${g} orders`,      // REQUIRED. Header text for a group.
   color: () => "iris",              // default undefined. Header colour, a Radix scale.
+  // ^ OMIT IT when grouping by a dg:enum column — see below.
   header: (g) => <span>{g}</span>,  // default undefined. Your nodes, right of the name.
   headerHeight: 40,                 // default 40. Pixels. Nothing measures what you drew.
 };
@@ -475,6 +543,11 @@ window, and the client cannot repair it.
 before React draws into it. A taller header is clipped; a shorter one leaves a
 gap. Set it to fit the tallest thing `header` can return.
 
+**Group by a `dg:enum` column and the colours are automatic.** The engine holds
+that column's `choices`, so it colours each header's name to match the badges
+under it and `color` can be left out entirely. Set `color` to override that, or
+to colour groups on a column that is not an enum.
+
 `header` is called during render, once per visible group. Keep it pure and
 cheap; it is not the place to start a fetch. The same node is used twice: in the
 header above the group, and in the banner naming the group you are scrolled
@@ -488,21 +561,14 @@ The runtime built from one descriptor. Create it **once, at module scope**.
 
 ```ts
 import { createGridInstance } from "@matthewhsu1/datagrid";
-import { createListenerMiddleware } from "@reduxjs/toolkit";
 import { orderDescriptor } from "./shared";
 
-export const listenerMiddleware = createListenerMiddleware();
-
-export const orderGrid = createGridInstance(orderDescriptor, {
-  startListening: listenerMiddleware.startListening,
-  // ^ default undefined. REQUIRED whenever descriptor.api.saveColumns is set.
-});
+export const orderGrid = createGridInstance(orderDescriptor);
 ```
 
-Column persistence runs as a listener effect. The engine ships no middleware of
-its own, so it registers on yours. Set `saveColumns` without passing
-`startListening` and `createGridInstance` **throws** at wiring time, rather than
-silently never saving.
+The descriptor is the only argument. Column persistence runs from the mounted
+grid, not from middleware, so there is no listener to hand over and nothing to
+`.concat` into your store.
 
 **One mounted grid per instance.** The instance holds single slots for the row
 store, the pending store of a hold, and the collapse carry point. Two grids
@@ -513,22 +579,22 @@ the same rows needs a second `createGridInstance`.
 
 ## 10. The store
 
-Mount the instance's reducer under the descriptor's `name`, and concat your
-listener middleware.
+Mount the instance's reducer under the descriptor's `name`.
 
 ```ts
 import { appearanceReducer } from "@matthewhsu1/datagrid";
 import { configureStore } from "@reduxjs/toolkit";
-import { listenerMiddleware, orderGrid } from "./shared";
+import { orderGrid } from "./shared";
 
 export const store = configureStore({
   reducer: {
     appearance: appearanceReducer,
     orders: orderGrid.reducer, // the key MUST equal descriptor.name
   },
-  middleware: (getDefault) => getDefault().prepend(listenerMiddleware.middleware),
 });
 ```
+
+No middleware of ours goes here. The engine ships none and needs none.
 
 The reducer holds only client-owned state: group collapse, sort, column order
 and widths, hidden columns, row selection, and the last rejected edit. **No
@@ -568,7 +634,7 @@ export function AppRoot({ children }: { children: React.ReactNode }) {
 
 ## 12. Rendering
 
-`<DataGrid>` takes exactly one prop.
+`<DataGrid>` needs one prop.
 
 ```tsx
 import { DataGrid } from "@matthewhsu1/datagrid";
@@ -582,6 +648,52 @@ export function OrdersPage() {
 Everything else — sort menus, the column picker, group headers, the edit banner
 — is drawn by the grid from the descriptor. Give it a sized parent; it fills the
 space it is given.
+
+### Drawing the column header yourself
+
+Three optional props open the header to glide's own API. What you pass beats
+what the engine draws, which beats glide's default.
+
+```tsx
+import { DataGrid, type GridDrawHeader } from "@matthewhsu1/datagrid";
+import type { SpriteMap } from "@glideapps/glide-data-grid";
+import { orderGrid } from "./shared";
+
+const drawHeader: GridDrawHeader = (args, drawDefault) => {
+  // Everything glide passes is here, plus the engine's own sort state.
+  const sort = args.sort;
+
+  if (sort === null || sort.field !== args.column.id) return drawDefault();
+
+  const { ctx, rect, theme } = args;
+  ctx.fillStyle = theme.accentColor;
+  ctx.fillText(`${args.column.title} ${sort.dir === "asc" ? "▲" : "▼"}`, rect.x + 8, rect.y + 20);
+};
+
+const headerIcons: SpriteMap = {
+  flag: (props) => `<svg width="20" height="20"><path fill="${props.fgColor}" d="M4 2h12l-3 4 3 4H4z"/></svg>`,
+};
+
+export function OrdersPage() {
+  return (
+    <DataGrid
+      instance={orderGrid}
+      drawHeader={drawHeader} // default undefined. Replaces the engine's header entirely.
+      headerIcons={headerIcons} // default undefined. MERGED over the engine's own sprites.
+      headerHeight={44} // default 36. Reaches the group-header layer too.
+    />
+  );
+}
+```
+
+`drawHeader` is **total**: the sort chevron and the menu arrow go with it.
+`args.sort` and `args.sortable` are there so you can draw them back, and
+`drawDefault()` paints the engine's header if you only want to add to it. The
+callback is grid-wide, exactly as glide's is — branch on `args.column.id`.
+
+`headerIcons` is **merged**, because it is a dictionary. Naming one sprite
+replaces that entry and leaves the rest, including the `sortAsc` and `sortDesc`
+chevrons the sort indicator refers to by name.
 
 ---
 

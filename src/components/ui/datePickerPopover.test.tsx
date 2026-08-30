@@ -16,12 +16,7 @@ const trigger = () => screen.getByRole("button", { name: /date|1\/1\/2000|6\/1\/
 describe("DatePickerPopover", () => {
   it("labels the trigger with the placeholder when there is no value", () => {
     mount(
-      <DatePickerPopover
-        mode="date"
-        value={null}
-        onChange={vi.fn()}
-        placeholder="Pick a date"
-      />,
+      <DatePickerPopover mode="date" value={null} onChange={vi.fn()} placeholder="Pick a date" />,
     );
 
     expect(screen.getByRole("button", { name: "Pick a date" })).toBeInTheDocument();

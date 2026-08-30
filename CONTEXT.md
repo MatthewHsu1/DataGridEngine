@@ -30,8 +30,19 @@ time.
 **Row key** — the value that identifies a row for its whole life, independent of
 where the row currently sits. Positions move; keys do not.
 
-**Cell kind** — a string naming how one column draws and edits. A **cell
-registry** maps every kind to its renderer and its editor.
+**Cell type** — the string in a column's `type` naming how that column draws
+and edits. The ones this package draws are prefixed `dg:`; glide's own kinds are
+named as glide names them. A **cell registry** maps every type to its maker, its
+renderer, and its validator; the engine builds one per grid from the built-in
+types plus the descriptor's own.
+
+**Cell options** — one column's settings for its cell type, written on the
+column and carried inside every cell that column makes. Only the cell type they
+belong to reads them.
+
+**Custom column** — a column whose `type` names a cell the host registered
+rather than one this package ships. It says so with `custom: true`, which is
+what lets every other column's `type` and options be checked.
 
 ## Rows and where they live
 
@@ -110,3 +121,12 @@ flash.
 
 **Appearance watcher** — the host-owned thing that decides: an OS media query,
 a host page's class, a user toggle. Always outside this package.
+
+## Column layout
+
+**Columns state** — the user's own arrangement of the columns: their order,
+the widths they dragged, and the ones they hid. Client-owned, and the only part
+of the presentation the user changes directly.
+
+**Columns adapter** — where that arrangement is read from and written to. The
+engine's default writes to Web Storage; a descriptor may name its own.

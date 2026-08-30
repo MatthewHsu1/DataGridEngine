@@ -1,7 +1,12 @@
 // src/features/dataGrid/DataGrid.tsx
-import { DataEditor, type DataEditorRef, type Rectangle } from "@glideapps/glide-data-grid";
+import {
+  DataEditor,
+  type DataEditorRef,
+  type Rectangle,
+  type SpriteMap,
+} from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useGridTheme } from "../../theme/useGridTheme";
 import { specFromGridSort } from "./data/sortSpec";
@@ -11,9 +16,17 @@ import type { DisplayModel } from "./displayModel";
 import { GroupHeaderLayer } from "./GroupHeaderLayer";
 import { COLUMN_HEADER_HEIGHT } from "./rowHeights";
 import { ColumnPicker } from "./ColumnPicker";
+import { groupColumnColor } from "./groupColumnColor";
+import {
+  mergeHeaderIcons,
+  withSortArgs,
+  type GridDrawHeader,
+  type GridDrawHeaderArgs,
+} from "./headerDoors";
+import { sortablePredicate } from "./sortable";
+import { useColumnPersistence } from "./hooks/useColumnPersistence";
 import { useColumnSortMenu } from "./hooks/useColumnSortMenu";
 import { GridHeaderBar } from "./GridHeaderBar";
-import { sortHeaderIcons } from "./headerIcons";
 import { useCellRenderer } from "./hooks/useCellRenderer";
 import { useDisplayModel } from "./hooks/useDisplayModel";
 import { useGridColumns } from "./hooks/useGridColumns";
@@ -45,11 +58,41 @@ const ROW_MARKER_WIDTH = 40;
  */
 const SCROLLBAR_GUTTER = 18;
 
+export type { GridDrawHeader, GridDrawHeaderArgs };
+
+export interface DataGridProps<TRow extends object, TGroup, TKey extends string | number = number> {
+  /** The grid to draw, from `createGridInstance`. */
+  instance: GridInstance<TRow, TGroup, TKey>;
+
+  /**
+   * Draws the column header instead of the engine. See `GridDrawHeader`.
+   */
+  drawHeader?: GridDrawHeader;
+
+  /**
+   * Named header sprites, MERGED over the engine's own.
+   *
+   * A dictionary, unlike `drawHeader`: naming one icon replaces that entry and
+   * leaves the rest — including the engine's `sortAsc` and `sortDesc` chevrons,
+   * which the sort indicator refers to by name.
+   */
+  headerIcons?: SpriteMap;
+
+  /**
+   * Height of the column-header row, in pixels. Defaults to glide's 36.
+   *
+   * It reaches the group-header layer as well as the canvas: every group header
+   * is placed by measuring down from this line.
+   */
+  headerHeight?: number;
+}
+
 export function DataGrid<TRow extends object, TGroup, TKey extends string | number = number>({
   instance,
-}: {
-  instance: GridInstance<TRow, TGroup, TKey>;
-}) {
+  drawHeader,
+  headerIcons: hostHeaderIcons,
+  headerHeight = COLUMN_HEADER_HEIGHT,
+}: DataGridProps<TRow, TGroup, TKey>) {
   // Before glide can paint, and therefore long before the first editor opens.
   // A missing portal is silent: the grid renders, and editing simply does
   // nothing. See `ensurePortal.ts`.
@@ -107,6 +150,12 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   // wait on pages a hold has since replaced.
   rangeLoadedRef.current = isRangeLoaded;
 
+  // Restores the saved layout on mount and writes it back on every change.
+  // Here rather than on the host's listener middleware: a grid instance is
+  // built at module scope and has no store to subscribe to, and this is also
+  // the only place that knows the grid is on screen.
+  useColumnPersistence(instance, instance.columnsAdapter);
+
   const { visibleFields, columns, onColumnResize, onColumnMoved } = useGridColumns(instance);
 
   // Published during render, for the same reason the model is: a repaint that
@@ -123,7 +172,20 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   modelRef.current = model;
 
   const { layerRef, visibleHeaders, bannerGroup, rowHeight, trackRegion, revealAfterCollapse } =
-    useGroupHeaders({ model, collapsedGroups, grouping, gridRef });
+    useGroupHeaders({
+      model,
+      collapsedGroups,
+      grouping,
+      gridRef,
+      columnHeaderHeight: headerHeight,
+    });
+
+  // Resolved from the descriptor: `grouping.color` where the host set one,
+  // otherwise the grouped enum column's own choices. See `groupColumnColor`.
+  const groupColorOf = useMemo(
+    () => groupColumnColor(grouping, instance.descriptor.columns.defs),
+    [grouping, instance],
+  );
 
   const {
     banner,
@@ -134,6 +196,7 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
     group: bannerGroup,
     collapsedGroups,
     fallbackColor: gridTheme.textHeader,
+    colorOf: groupColorOf,
     toggleGroup,
     revealAfterCollapse,
   });
@@ -158,6 +221,15 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   // moves nothing React watches, so it reaches the screen through the same
   // damage callback the page loader and the save path use.
   useRowSync(instance, collapsedGroups, repaintRows);
+
+  const headerIcons = useMemo(() => mergeHeaderIcons(hostHeaderIcons), [hostHeaderIcons]);
+
+  const isSortable = useMemo(() => sortablePredicate(instance.descriptor.columns.defs), [instance]);
+
+  const onDrawHeader = useMemo(
+    () => withSortArgs(drawHeader, sort, isSortable),
+    [drawHeader, sort, isSortable],
+  );
 
   const dismissError = useCallback(
     () => dispatch(instance.actions.editErrorCleared()),
@@ -207,13 +279,14 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
         <DataEditor
           ref={gridRef}
           theme={gridTheme}
-          customRenderers={instance.descriptor.cells.customRenderers}
-          headerIcons={sortHeaderIcons}
-          validateCell={(_cell, newValue) => instance.descriptor.cells.validateCell(newValue)}
+          customRenderers={instance.cells.customRenderers}
+          headerIcons={headerIcons}
+          drawHeader={onDrawHeader}
+          validateCell={(_cell, newValue) => instance.cells.validateCell(newValue)}
           columns={columns}
           rows={model.rowCount}
           rowHeight={rowHeight}
-          headerHeight={COLUMN_HEADER_HEIGHT}
+          headerHeight={headerHeight}
           getCellContent={getCellContent}
           getCellsForSelection={true}
           onCellEdited={onCellEdited}

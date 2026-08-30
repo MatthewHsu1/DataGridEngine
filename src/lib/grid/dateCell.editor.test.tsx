@@ -4,9 +4,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentType } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createDateCell, type DateCellData } from "./createDateCell";
+import { dateCellRenderer, makeDateCell, DATE_CELL_TYPE, type DateCellData } from "./dateCell";
 
-const date = createDateCell({ kind: "date", nullable: true });
+const nullable = { nullable: true };
+const nullableWithTime = { nullable: true, withTime: true };
 
 interface EditorHandlers {
   value: CustomCell<DateCellData>;
@@ -17,7 +18,7 @@ interface EditorHandlers {
 
 /** Mount the cell's overlay editor the way glide-data-grid does. */
 function mountEditor(cell: CustomCell<DateCellData>, handlers: Partial<EditorHandlers> = {}) {
-  const Editor = date.renderer.provideEditor?.(cell) as unknown as ComponentType<EditorHandlers>;
+  const Editor = dateCellRenderer.provideEditor?.(cell) as unknown as ComponentType<EditorHandlers>;
 
   const props: EditorHandlers = {
     value: cell,
@@ -37,7 +38,7 @@ const utcIso = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, 
 
 describe("date cell editor", () => {
   it("shows the cell's value in the masked input", () => {
-    mountEditor(date.makeCell(utcIso(2000, 1, 1), false));
+    mountEditor(makeDateCell(utcIso(2000, 1, 1), nullable));
 
     expect(screen.getByLabelText("Date")).toHaveValue("01/01/2000");
   });
@@ -47,7 +48,7 @@ describe("date cell editor", () => {
     const onFinishedEditing = vi.fn();
     const onChange = vi.fn();
 
-    mountEditor(date.makeCell(null, false), { onFinishedEditing, onChange });
+    mountEditor(makeDateCell(null, nullable), { onFinishedEditing, onChange });
     await user.type(screen.getByLabelText("Date"), "06202026");
 
     expect(onFinishedEditing).not.toHaveBeenCalled();
@@ -57,9 +58,9 @@ describe("date cell editor", () => {
 
     expect(onFinishedEditing).toHaveBeenCalledOnce();
     expect(onFinishedEditing.mock.calls[0][0].data).toEqual({
-      kind: "date",
+      kind: DATE_CELL_TYPE,
       value: utcIso(2026, 6, 20),
-      withTime: false,
+      options: nullable,
     });
   });
 
@@ -67,36 +68,35 @@ describe("date cell editor", () => {
     const user = userEvent.setup();
     const onFinishedEditing = vi.fn();
 
-    mountEditor(date.makeCell(null, false), { onFinishedEditing });
+    mountEditor(makeDateCell(null, nullable), { onFinishedEditing });
     await user.type(screen.getByLabelText("Date"), "06202026");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onFinishedEditing).toHaveBeenCalledExactlyOnceWith(undefined);
   });
 
-  it("offers a time input for a withTime cell", () => {
-    mountEditor(date.makeCell(new Date(2026, 5, 20, 13, 30).toISOString(), true));
+  it("offers a time input when the column's options say withTime", () => {
+    mountEditor(makeDateCell(new Date(2026, 5, 20, 13, 30).toISOString(), nullableWithTime));
 
     expect(screen.getByLabelText("Time")).toHaveValue("13:30");
   });
 
-  it("commits null from an empty value because the cell is nullable", async () => {
+  it("commits null from an empty value because the column is nullable", async () => {
     const user = userEvent.setup();
     const onFinishedEditing = vi.fn();
 
-    mountEditor(date.makeCell(utcIso(2000, 1, 1), false), { onFinishedEditing });
+    mountEditor(makeDateCell(utcIso(2000, 1, 1), nullable), { onFinishedEditing });
     await user.clear(screen.getByLabelText("Date"));
     await user.click(screen.getByRole("button", { name: "OK" }));
 
     expect(onFinishedEditing.mock.calls[0][0].data.value).toBeNull();
   });
 
-  it("blocks OK on an empty value when the cell is not nullable", () => {
-    const required = createDateCell({ kind: "required-date", nullable: false });
-    const cell = required.makeCell(null, false);
-    const Editor = required.renderer.provideEditor?.(
-      cell,
-    ) as unknown as ComponentType<Record<string, unknown>>;
+  it("blocks OK on an empty value when the column is not nullable", () => {
+    const cell = makeDateCell(null, {});
+    const Editor = dateCellRenderer.provideEditor?.(cell) as unknown as ComponentType<
+      Record<string, unknown>
+    >;
 
     render(
       <Theme>

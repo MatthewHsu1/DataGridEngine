@@ -1,14 +1,23 @@
 import type { ReactNode } from "react";
 import type { Reducer } from "@reduxjs/toolkit";
-import type { CellRegistry } from "../../lib/grid/cellRegistry";
+import type { CellRegistry, CellTypeDef } from "../../lib/grid/cellRegistry";
+import type { DateCellOptions } from "../../lib/grid/dateCell";
+import type { EnumCellOptions } from "../../lib/grid/enumChoices";
+import type { NumberCellOptions } from "../../lib/grid/numberCell";
+import type { PhoneCellOptions } from "../../lib/grid/phoneCell";
 import type { RadixColor } from "../../lib/grid/radixBadgePalette";
+import type { TextCellOptions } from "../../lib/grid/textCell";
 import type { RowStore } from "./data/rowStore";
 import type { SortSpec } from "./data/sortSpec";
 
 /**
- * Generic column definition.
+ * What every column says, whatever it draws.
+ *
+ * Everything here is read by the GRID itself — the header, the layout, the sort
+ * menu, the edit path. A setting only one cell type understands does not belong
+ * here; it belongs on that column's `options`.
  */
-export interface ColumnDef {
+interface ColumnDefBase {
   /**
    * Row property this column reads. Also the column's id in every state slice.
    */
@@ -26,6 +35,9 @@ export interface ColumnDef {
 
   /**
    * Whether a cell in this column accepts an edit.
+   *
+   * Read by the grid, not just by the cell: it gates the edit overlay and the
+   * save path as well as whether an editor opens.
    */
   editable: boolean;
 
@@ -38,16 +50,72 @@ export interface ColumnDef {
    * such a column is an arrow onto an error.
    */
   sortable?: boolean;
+}
+
+/**
+ * A column definition: what the column is, and how its cells behave.
+ *
+ * `type` names the cell, exactly the way glide names its own. The five this
+ * package draws are prefixed `dg:`; glide's own kinds are reachable under
+ * glide's own names, unprefixed. The prefix is what keeps the two sets apart
+ * forever, so glide may add kinds without ever colliding with ours.
+ *
+ * `options` is that cell type's own settings, and each branch below types its
+ * own. A column naming a cell the HOST registered through `descriptor.cells`
+ * says so with `custom: true`, and its `options` is then `unknown`.
+ *
+ * That one word is what makes every other branch check. An open `type: string`
+ * branch would swallow everything: a mistyped `type`, a mistyped key inside a
+ * built-in column's `options`, even a `dg:enum` with no choices at all would
+ * satisfy it and raise nothing. With `custom` as the discriminant, TypeScript
+ * has to pick a real branch, so all three are errors — and the cost is one key
+ * on the columns that genuinely are custom.
+ */
+export type ColumnDef =
+  | (ColumnDefBase & { type: "dg:text"; custom?: false; options?: TextCellOptions })
+  | (ColumnDefBase & { type: "dg:number"; custom?: false; options?: NumberCellOptions })
+  | (ColumnDefBase & { type: "dg:date"; custom?: false; options?: DateCellOptions })
+  | (ColumnDefBase & { type: "dg:enum"; custom?: false; options: EnumCellOptions })
+  | (ColumnDefBase & { type: "dg:phone"; custom?: false; options?: PhoneCellOptions })
+  | (ColumnDefBase & {
+      /** One of glide's own cell kinds, drawn by glide. These take no options. */
+      type: "text" | "number" | "boolean" | "uri" | "markdown" | "image" | "bubble" | "drilldown";
+      custom?: false;
+      options?: undefined;
+    })
+  | (ColumnDefBase & {
+      /** A cell type the host registered through `descriptor.cells`. */
+      type: string;
+
+      /**
+       * REQUIRED for a host-registered cell type, and the only thing that marks
+       * one. Without it a `type` this package does not know is an error naming
+       * the ones it does — which is what catches `"dg:numbr"`.
+       */
+      custom: true;
+
+      /** Whatever that cell type reads. Only it knows the shape. */
+      options?: unknown;
+    });
+
+/**
+ * Reads and writes the user's column layout.
+ *
+ * Both calls are async, whatever the storage behind them: the engine's own
+ * default writes to Web Storage and resolves immediately, and a host that keeps
+ * layouts on a server returns a real request. One shape, so the engine's save
+ * path has one thing to await.
+ */
+export interface ColumnsAdapter {
+  /**
+   * Reads the saved layout, or null when there is none to restore.
+   */
+  loadColumns: () => Promise<ColumnsState | null>;
 
   /**
-   * Cell kind. Must match a cell registry entry.
+   * Persists the layout. Called debounced, after the user stops changing it.
    */
-  type: string;
-
-  /**
-   * Date cells only: keep the time part instead of a floating calendar date.
-   */
-  withTime?: boolean;
+  saveColumns: (state: ColumnsState) => Promise<void>;
 }
 
 /**
@@ -176,17 +244,18 @@ export interface GridGrouping<TRow, TGroup> {
   /**
    * Text color of a group's header row, named as a Radix scale.
    *
-   * The point is to make the header agree with the column it groups by: when
-   * that column is an enum cell, return `enumCell.colorOf(g)` and the header
-   * text lands on the same scale as the badge in the cell and the badge in the
-   * editor's dropdown. The engine resolves the scale to a concrete color
-   * through the same CSS vars the badges read, so it follows the appearance
-   * without being told about it.
+   * OMIT IT when grouping by a `dg:enum` column: the engine already holds that
+   * column's choices, so it colours the header from them and the name lands on
+   * the same scale as the badge in the cell and the badge in the editor's
+   * dropdown. Setting this overrides that.
    *
-   * Answering `undefined` — for the whole grid by omitting this, or for one
-   * group by returning it — falls the header back to the theme's header text
-   * color. That is the right answer for a group with no color of its own; it is
-   * not an error.
+   * The engine resolves the scale to a concrete color through the same CSS vars
+   * the badges read, so it follows the appearance without being told about it.
+   *
+   * Answering `undefined` — for one group by returning it, or for a grid that
+   * groups by a column with no colours of its own — falls the header back to
+   * the theme's header text color. That is the right answer for a group with no
+   * color of its own; it is not an error.
    */
   color?: (g: TGroup) => RadixColor | undefined;
 
@@ -237,7 +306,8 @@ export interface GridDescriptor<TRow, TGroup, TKey extends string | number = num
   rowKey: (row: TRow) => TKey;
 
   /**
-   * Column set and its default presentation.
+   * Column set, its default presentation, and how the user's changes to it are
+   * remembered.
    */
   columns: {
     /**
@@ -249,6 +319,24 @@ export interface GridDescriptor<TRow, TGroup, TKey extends string | number = num
      * Left-to-right field order before the user reorders the columns.
      */
     defaultOrder: string[];
+
+    /**
+     * Whether the user's layout survives a reload. Defaults to true.
+     *
+     * On, the engine writes to Web Storage under `datagrid:${name}:columns`.
+     * Set it false for a grid whose layout should always start from the
+     * descriptor — a report that is meant to look the same for everyone.
+     */
+    persist?: boolean;
+
+    /**
+     * Where the layout is kept instead of Web Storage.
+     *
+     * Point it at the host's own storage — a settings endpoint, a user profile
+     * row — and the engine calls this instead of its default. Ignored when
+     * `persist` is false.
+     */
+    adapter?: ColumnsAdapter;
   };
 
   /**
@@ -308,23 +396,17 @@ export interface GridDescriptor<TRow, TGroup, TKey extends string | number = num
      * rollback.
      */
     updateRow: (p: UpdateRowParams<TRow, TKey>) => Promise<{ ok: boolean; row?: TRow }>;
-
-    /**
-     * Reads the user's saved column layout. Omit it to always start from the
-     * defaults.
-     */
-    loadColumns?: () => Promise<ColumnsState | null>;
-
-    /**
-     * Persists the user's column layout.
-     */
-    saveColumns?: (state: ColumnsState) => Promise<void>;
   };
 
   /**
-   * Cell renderers and editors, looked up by `ColumnDef.type`.
+   * Cell types this grid understands ON TOP of the built-in ones.
+   *
+   * Omit it entirely for a grid built from `dg:` cells and glide's own kinds —
+   * which is most grids. A def whose `type` matches a built-in replaces that
+   * built-in for this grid, which is how a host changes a cell we draw without
+   * forking the package.
    */
-  cells: CellRegistry;
+  cells?: CellTypeDef[];
 
   /**
    * Row-window page size. Defaults to 100.
@@ -450,41 +532,10 @@ export interface GridSliceState<TGroup, TKey extends string | number = number> {
 }
 
 /**
- * RTK's `startListening`, as a grid needs it.
- *
- * The engine registers its action-driven side-effects on the HOST app's
- * listener middleware rather than owning one of its own: a listener already
- * discriminates by action type, so a middleware per library buys nothing and
- * forces every consumer to `.concat` another entry. Pass
- * `listenerMiddleware.startListening` (or a `.withTypes<...>()` wrapper of it).
- *
- * The real RTK type is heavily generic and its state parameter belongs to the
- * host, not to us, so this stays deliberately loose — the same localized `any`
- * the rest of the engine-factory layer uses.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type StartListening = (options: any) => () => void;
-
-/**
- * Host wiring handed to `createGridInstance`.
- */
-export interface GridInstanceOptions {
-  /**
-   * The host app's listener registration function.
-   *
-   * Required whenever the descriptor sets `api.saveColumns`, because column
-   * persistence runs as a listener effect; `createGridInstance` throws when it
-   * is missing rather than silently never saving. Omit it for a grid that
-   * persists nothing.
-   */
-  startListening?: StartListening;
-}
-
-/**
  * Everything a grid needs at runtime, created once at module scope per grid:
  * the combined reducer (mount under `descriptor.name`) for client-owned state,
- * a root selector, all slice action creators, the thunks, and the cell that
- * holds the mounted grid's row store. Hooks and <DataGrid> take this.
+ * a root selector, all slice action creators, the columns adapter, and the cell
+ * that holds the mounted grid's row store. Hooks and <DataGrid> take this.
  */
 export interface GridInstance<TRow extends object, TGroup, TKey extends string | number = number> {
   /**
@@ -586,18 +637,20 @@ export interface GridInstance<TRow extends object, TGroup, TKey extends string |
   bumpDataGeneration: () => void;
 
   /**
-   * Removes this instance's effects from the shared grid listener.
+   * Where this grid's column layout is read from and written to, or null when
+   * it persists nothing.
+   *
+   * Resolved once, from `descriptor.columns`, so the load on mount and every
+   * save afterwards cannot disagree about where the layout lives.
    */
-  stopEffects: () => void;
+  columnsAdapter: ColumnsAdapter | null;
 
   /**
-   * Async actions that need the descriptor.
+   * Every cell type this grid can draw: the built-ins with the descriptor's own
+   * laid over them, resolved once.
+   *
+   * Built here rather than in the component because glide re-creates every
+   * editor whenever the `customRenderers` array it was handed changes identity.
    */
-  thunks: {
-    /**
-     * Restores the saved column layout through `api.loadColumns`.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    loadColumns: () => any;
-  };
+  cells: CellRegistry;
 }

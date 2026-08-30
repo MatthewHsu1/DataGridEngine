@@ -9,12 +9,7 @@
  *
  * Nothing here ships. `package.json`'s `files` field publishes `dist` only.
  */
-import type {
-  ColumnsState,
-  FetchRowsParams,
-  RowChange,
-  UpdateRowParams,
-} from "@matthewhsu1/datagrid";
+import type { FetchRowsParams, RowChange, UpdateRowParams } from "@matthewhsu1/datagrid";
 
 /** The row the documentation's example grid draws. */
 export interface OrderRow {
@@ -55,90 +50,22 @@ export function subscribe(_handler: (change: RowChange<number>) => void): () => 
   return () => {};
 }
 
-export async function loadColumns(): Promise<ColumnsState | null> {
-  return null;
-}
-
-export async function saveColumns(_state: ColumnsState): Promise<void> {}
-
 // ─── What the later blocks import ────────────────────────────────────────────
 //
-// A block in section 7 needs the columns and cells that sections 5 and 6 built;
-// a block in section 10 needs the instance from section 9. Rather than make
-// every block redeclare its predecessors, each earlier section's result is
-// assembled once here. The blocks below are the SAME code as the doc's, so a
-// change to either side that breaks the other fails `npm run check:docs`.
+// A block in section 7 needs the columns that section 5 built; a block in
+// section 10 needs the instance from section 9. Rather than make every block
+// redeclare its predecessors, each earlier section's result is assembled once
+// here. The blocks below are the SAME code as the doc's, so a change to either
+// side that breaks the other fails `npm run check:docs`.
 
 import { QueryClient } from "@tanstack/react-query";
-import { configureStore, createListenerMiddleware } from "@reduxjs/toolkit";
-import type { CustomRenderer } from "@glideapps/glide-data-grid";
+import { configureStore } from "@reduxjs/toolkit";
 import {
   appearanceReducer,
-  createCellRegistry,
-  createDateCell,
-  createEnumCell,
   createGridInstance,
-  createNumberCell,
-  createPhoneCell,
-  createTextCell,
-  localStorageColumnsAdapter,
-  type CellContext,
-  type CellTypeDef,
   type ColumnDef,
   type GridDescriptor,
 } from "@matthewhsu1/datagrid";
-
-export const referenceCell = createTextCell({ kind: "reference", validation: { required: true } });
-export const totalCell = createNumberCell({ kind: "total", format: "currency", currency: "USD" });
-export const placedAtCell = createDateCell({ kind: "placedAt", nullable: true });
-export const statusCell = createEnumCell({
-  kind: "status",
-  options: [
-    { value: 0, label: "Draft" },
-    { value: 1, label: "Paid", color: "green" },
-    { value: 2, label: "Void", color: "red" },
-  ],
-});
-export const phoneCell = createPhoneCell({ kind: "phone", nullable: true });
-
-export const orderCells = createCellRegistry(
-  [
-    {
-      type: "text",
-      kind: "reference",
-      make: (raw: unknown, ctx: CellContext) =>
-        referenceCell.makeCell(raw == null ? null : String(raw), ctx.editable),
-      renderer: referenceCell.renderer,
-      validate: referenceCell.validate,
-    },
-    {
-      type: "currency",
-      kind: "total",
-      make: (raw: unknown, ctx: CellContext) =>
-        totalCell.makeCell(raw == null ? null : Number(raw), ctx.editable),
-      renderer: totalCell.renderer,
-      validate: totalCell.validate,
-    },
-    {
-      type: "date",
-      kind: "placedAt",
-      make: (raw: unknown, ctx: CellContext) =>
-        placedAtCell.makeCell(raw == null ? null : String(raw), ctx.withTime, ctx.editable),
-      renderer: placedAtCell.renderer,
-      validate: placedAtCell.validate,
-    },
-    {
-      type: "status",
-      make: (raw: unknown, ctx: CellContext) =>
-        statusCell.makeCell(raw == null ? null : Number(raw), ctx.editable),
-      renderer: statusCell.renderer,
-    },
-  ].map((d): CellTypeDef => ({
-    ...d,
-    renderer: d.renderer as unknown as CustomRenderer,
-    validate: d.validate as unknown as CellTypeDef["validate"],
-  })),
-);
 
 export const COLUMN_DEFS: Record<string, ColumnDef> = {
   reference: {
@@ -146,48 +73,62 @@ export const COLUMN_DEFS: Record<string, ColumnDef> = {
     title: "Reference",
     defaultWidth: 160,
     editable: false,
-    type: "text",
+    type: "dg:text",
+    options: { required: true },
   },
-  total: { field: "total", title: "Total", defaultWidth: 120, editable: true, type: "currency" },
+  total: {
+    field: "total",
+    title: "Total",
+    defaultWidth: 120,
+    editable: true,
+    type: "dg:number",
+    options: { format: "currency", currency: "USD" },
+  },
   placedAt: {
     field: "placedAt",
     title: "Placed",
     defaultWidth: 180,
     editable: true,
-    type: "date",
-    withTime: true,
+    type: "dg:date",
+    options: { nullable: true, withTime: true },
+  },
+  status: {
+    field: "status",
+    title: "Status",
+    defaultWidth: 120,
+    editable: true,
+    type: "dg:enum",
+    options: {
+      choices: [
+        { value: 0, label: "Draft" },
+        { value: 1, label: "Paid", color: "green" },
+        { value: 2, label: "Void", color: "red" },
+      ],
+    },
+  },
+  phone: {
+    field: "phone",
+    title: "Phone",
+    defaultWidth: 160,
+    editable: true,
+    type: "dg:phone",
+    options: { nullable: true },
   },
 };
 
-export const DEFAULT_ORDER = ["reference", "total", "placedAt"];
-
-const columnsAdapter = localStorageColumnsAdapter("orders:columns");
+export const DEFAULT_ORDER = ["reference", "total", "placedAt", "status", "phone"];
 
 export const orderDescriptor: GridDescriptor<OrderRow, never, number> = {
   name: "orders",
   rowKey: (row) => row.id,
   columns: { defs: COLUMN_DEFS, defaultOrder: DEFAULT_ORDER },
-  cells: orderCells,
-  api: {
-    fetchRows,
-    fetchCount,
-    fetchRow,
-    updateRow,
-    subscribe,
-    loadColumns: columnsAdapter.loadColumns,
-    saveColumns: columnsAdapter.saveColumns,
-  },
+  api: { fetchRows, fetchCount, fetchRow, updateRow, subscribe },
 };
 
-export const listenerMiddleware = createListenerMiddleware();
-
-export const orderGrid = createGridInstance(orderDescriptor, {
-  startListening: listenerMiddleware.startListening,
-});
+export const orderGrid = createGridInstance(orderDescriptor);
 
 export const store = configureStore({
   reducer: { appearance: appearanceReducer, orders: orderGrid.reducer },
-  middleware: (getDefault) => getDefault().prepend(listenerMiddleware.middleware),
 });
 
 export const queryClient = new QueryClient();

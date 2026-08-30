@@ -38,7 +38,6 @@ function makeHarness(overrides: { unsortable?: string } = {}) {
     api: {
       updateRow: async () => ({ ok: true }),
     },
-    cells: { makeCell: () => ({}) as never, customRenderers: [], validateCell: () => true },
   } as unknown as GridDescriptor<Row, never, number>;
 
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

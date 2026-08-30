@@ -1,6 +1,6 @@
 {
   "name": "@matthewhsu1/datagrid",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A virtualised, server-paged data grid engine for React — windowed paging, a page cache, optimistic edits, cross-client row sync, grouping, and typed cell editors, over glide-data-grid.",
   "license": "MIT",
   "author": "MatthewHsu1 <matthewhsu1128@gmail.com>",
@@ -58,12 +58,12 @@
   },
   "peerDependencies": {
     "@glideapps/glide-data-grid": "6.0.4-alpha24",
-    "@radix-ui/themes": "^3.3.0",
-    "@reduxjs/toolkit": "^2.12.0",
-    "@tanstack/react-query": "^5.101.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-redux": "^9.3.0"
+    "@radix-ui/themes": "^3.0.0",
+    "@reduxjs/toolkit": "^2.0.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.0.0"
   },
   "dependencies": {
     "@tanstack/react-pacer": "^0.22.1",

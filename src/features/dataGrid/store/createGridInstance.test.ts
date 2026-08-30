@@ -1,54 +1,91 @@
-// src/features/dataGrid/store/createGridInstance.test.ts
 import { describe, expect, it } from "vitest";
 import { createGridInstance } from "./createGridInstance";
-import type { GridDescriptor } from "../types";
+import { defaultColumnsStorageKey } from "./columnsAdapter";
+import type { ColumnsAdapter, GridDescriptor } from "../types";
 
 interface Row {
   id: number;
 }
-const descriptor = {
-  name: "demo",
-  rowKey: (r: Row) => r.id,
-  columns: {
-    defs: { id: { field: "id", title: "Id", defaultWidth: 80, editable: false, type: "number" } },
-    defaultOrder: ["id"],
-  },
-  api: {
-    fetchRows: async () => [],
-    fetchCount: async () => 0,
-    fetchRow: async () => null,
-    updateRow: async () => ({ ok: true }),
-  },
-  cells: { makeCell: () => ({}) as never, customRenderers: [], validateCell: () => true },
-} as unknown as GridDescriptor<Row, number>;
 
-const makeInstance = () => createGridInstance(descriptor);
+function makeDescriptor(
+  name: string,
+  columns: Partial<GridDescriptor<Row, number>["columns"]> = {},
+): GridDescriptor<Row, number> {
+  return {
+    name,
+    rowKey: (r) => r.id,
+    columns: {
+      defs: {
+        id: { field: "id", title: "Id", defaultWidth: 80, editable: false, type: "dg:number" },
+      },
+      defaultOrder: ["id"],
+      ...columns,
+    },
+    api: {
+      fetchRows: async () => [],
+      fetchCount: async () => 0,
+      fetchRow: async () => null,
+      updateRow: async () => ({ ok: true }),
+    },
+  };
+}
 
 describe("createGridInstance", () => {
-  it("reduces only client-owned state — rows live in the row store", () => {
-    const inst = makeInstance();
+  it("takes the descriptor and nothing else", () => {
+    const inst = createGridInstance(makeDescriptor("plain"));
+
+    expect(typeof inst.reducer).toBe("function");
+    expect(typeof inst.selectRoot).toBe("function");
+  });
+
+  it("mounts its state under the descriptor name", () => {
+    const inst = createGridInstance(makeDescriptor("mounted"));
     const state = inst.reducer(undefined, { type: "@@init" });
-    expect(Object.keys(state).sort()).toEqual(["columns", "edits", "groups", "selection"]);
+
+    expect(inst.selectRoot({ mounted: state })).toBe(state);
+    expect(state.columns.order).toEqual(["id"]);
   });
 
-  it("selectRoot reads the namespaced slice from a full store state", () => {
-    const inst = makeInstance();
-    const sub = inst.reducer(undefined, { type: "@@init" });
-    expect(inst.selectRoot({ demo: sub }).columns.order).toEqual(["id"]);
+  it("persists columns by default, with no wiring at all", () => {
+    const inst = createGridInstance(makeDescriptor("byDefault"));
+
+    expect(inst.columnsAdapter).not.toBeNull();
   });
 
-  it("exposes an effects teardown and a loadColumns thunk", () => {
-    const inst = makeInstance();
-    expect(typeof inst.stopEffects).toBe("function");
-    expect(typeof inst.thunks.loadColumns).toBe("function");
-    inst.stopEffects();
+  it("persists nothing when the descriptor says so", () => {
+    const inst = createGridInstance(makeDescriptor("optedOut", { persist: false }));
+
+    expect(inst.columnsAdapter).toBeNull();
   });
 
-  it("starts with an empty store cell, so a push before any grid mounts is dropped", () => {
-    // The instance is created at module scope, long before a grid mounts, and
-    // `useGridData` is what fills this cell. `data/sync/useRowSync.ts` relies on
-    // the null: a push that arrives first has nothing on screen to correct.
-    const inst = makeInstance();
-    expect(inst.storeRef.current).toBeNull();
+  it("uses the host's adapter over its own", () => {
+    const adapter: ColumnsAdapter = {
+      loadColumns: async () => null,
+      saveColumns: async () => {},
+    };
+    const inst = createGridInstance(makeDescriptor("hostOwned", { adapter }));
+
+    expect(inst.columnsAdapter).toBe(adapter);
+  });
+
+  it("ignores an adapter on a grid that persists nothing", () => {
+    const adapter: ColumnsAdapter = {
+      loadColumns: async () => null,
+      saveColumns: async () => {},
+    };
+    const inst = createGridInstance(makeDescriptor("off", { persist: false, adapter }));
+
+    expect(inst.columnsAdapter).toBeNull();
+  });
+
+  it("keys its default storage off the grid's name", () => {
+    expect(defaultColumnsStorageKey("orders")).toBe("datagrid:orders:columns");
+  });
+
+  it("knows every built-in cell without being handed one", () => {
+    const inst = createGridInstance(makeDescriptor("cells"));
+
+    expect(inst.cells.makeCell("dg:number", 1, { editable: true, options: {} })).toBeDefined();
+    expect(inst.cells.makeCell("text", "hi", { editable: true, options: undefined })).toBeDefined();
   });
 });

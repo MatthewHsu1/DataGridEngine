@@ -3,14 +3,14 @@ import { sortablePredicate } from "./sortable";
 import type { ColumnDef } from "./types";
 
 const DEFS: Record<string, ColumnDef> = {
-  id: { field: "id", title: "ID", defaultWidth: 80, editable: false, type: "int" },
-  name: { field: "name", title: "Name", defaultWidth: 200, editable: true, type: "text" },
+  id: { field: "id", title: "ID", defaultWidth: 80, editable: false, type: "dg:number" },
+  name: { field: "name", title: "Name", defaultWidth: 200, editable: true, type: "dg:text" },
   value: {
     field: "value",
     title: "Value",
     defaultWidth: 140,
     editable: false,
-    type: "currency",
+    type: "dg:number",
     sortable: false,
   },
 };

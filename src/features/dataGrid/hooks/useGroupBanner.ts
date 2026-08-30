@@ -2,6 +2,7 @@
 import { useCallback, useMemo } from "react";
 import { groupBanner, type GroupBanner } from "../groupBanner";
 import { groupHeaderTextColor } from "../groupHeaderColor";
+import type { RadixColor } from "../../../lib/grid/radixBadgePalette";
 import type { GridGrouping } from "../types";
 
 interface Args<TRow, TGroup> {
@@ -15,6 +16,13 @@ interface Args<TRow, TGroup> {
 
   /** Colour for a group that names no scale of its own — the theme's header text. */
   fallbackColor: string | undefined;
+
+  /**
+   * The Radix scale a group's name is written in, already resolved from the
+   * descriptor — `grouping.color` where the host set one, otherwise the grouped
+   * enum column's own choices. See `groupColumnColor`.
+   */
+  colorOf: ((group: TGroup) => RadixColor | undefined) | undefined;
 
   /** From `useDisplayModel`. THE ONLY dispatcher of a collapse. */
   toggleGroup: (group: TGroup) => void;
@@ -49,12 +57,13 @@ export function useGroupBanner<TRow, TGroup>({
   group,
   collapsedGroups,
   fallbackColor,
+  colorOf,
   toggleGroup,
   revealAfterCollapse,
 }: Args<TRow, TGroup>): Result<TGroup> {
   const groupColor = useCallback(
-    (of: TGroup) => groupHeaderTextColor(grouping?.color?.(of), fallbackColor),
-    [grouping, fallbackColor],
+    (of: TGroup) => groupHeaderTextColor(colorOf?.(of), fallbackColor),
+    [colorOf, fallbackColor],
   );
 
   const collapseFromBanner = useCallback(

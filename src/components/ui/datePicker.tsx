@@ -1,11 +1,7 @@
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { useId, useState, type KeyboardEvent } from "react";
-import {
-  DayPicker,
-  type ChevronProps,
-  type DateRange as CalendarRange,
-} from "react-day-picker";
+import { DayPicker, type ChevronProps, type DateRange as CalendarRange } from "react-day-picker";
 import { PatternFormat } from "react-number-format";
 import { dateToMask, maskToDate } from "../../lib/date/dateMask";
 import { composeIso, isoToCalendarDate, isoToTimeInput } from "../../lib/date/dateUtils";
@@ -186,10 +182,7 @@ export function DatePicker(props: DatePickerProps) {
   const components = { Chevron };
 
   return (
-    <div
-      className="dg:flex dg:min-w-[280px] dg:flex-col dg:gap-3 dg:p-3"
-      onKeyDown={handleKeyDown}
-    >
+    <div className="dg:flex dg:min-w-[280px] dg:flex-col dg:gap-3 dg:p-3" onKeyDown={handleKeyDown}>
       <div className="dg:flex dg:flex-wrap dg:gap-2">
         <MaskedDateField
           label={isRange ? "Start date" : "Date"}

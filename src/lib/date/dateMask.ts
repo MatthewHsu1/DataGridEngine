@@ -27,11 +27,7 @@ export function maskToDate(digits: string): Date | undefined {
 
   // Rejects both out-of-range parts and overflow days (Feb 30 → Mar 2), since
   // the Date constructor silently rolls those forward.
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
     return undefined;
   }
 

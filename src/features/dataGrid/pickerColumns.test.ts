@@ -3,9 +3,15 @@ import { pickerColumns } from "./pickerColumns";
 import type { ColumnDef } from "./types";
 
 const DEFS: Record<string, ColumnDef> = {
-  id: { field: "id", title: "ID", defaultWidth: 80, editable: false, type: "int" },
-  name: { field: "name", title: "Name", defaultWidth: 200, editable: true, type: "text" },
-  region: { field: "region", title: "Region", defaultWidth: 120, editable: false, type: "region" },
+  id: { field: "id", title: "ID", defaultWidth: 80, editable: false, type: "dg:number" },
+  name: { field: "name", title: "Name", defaultWidth: 200, editable: true, type: "dg:text" },
+  region: {
+    field: "region",
+    title: "Region",
+    defaultWidth: 120,
+    editable: false,
+    type: "dg:number",
+  },
 };
 
 const ORDER = ["id", "name", "region"];

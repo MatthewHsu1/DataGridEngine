@@ -104,15 +104,18 @@ function makeHarness({
       },
       api: { updateRow },
       ...(grouping ? { grouping } : {}),
-      cells: {
-        makeCell: (_type: string, raw: unknown): GridCell => ({
-          kind: GridCellKind.Text,
-          data: String(raw),
-          displayData: String(raw),
-          allowOverlay: true,
-          ...(cellTheme ? { themeOverride: cellTheme } : {}),
-        }),
-      },
+    },
+    // On the INSTANCE, not the descriptor: the registry is resolved once by
+    // `createGridInstance` (built-ins plus the descriptor's own) and the
+    // renderer reads it from there.
+    cells: {
+      makeCell: (_type: string, raw: unknown): GridCell => ({
+        kind: GridCellKind.Text,
+        data: String(raw),
+        displayData: String(raw),
+        allowOverlay: true,
+        ...(cellTheme ? { themeOverride: cellTheme } : {}),
+      }),
     },
     actions: edits.actions,
   } as unknown as GridInstance<Row, string, number>;
