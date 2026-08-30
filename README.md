@@ -142,7 +142,7 @@ changing anything in `src/features/dataGrid/`.
 ## Develop
 
 ```bash
-npm test           # 669 tests
+npm test           
 npm run typecheck
 npm run check:docs # typechecks every code block in docs/
 npm run lint
