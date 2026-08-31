@@ -26,11 +26,12 @@ function makeHarness(total: number) {
   let openFetch: () => void = () => {};
   let fetchGate: Promise<void> = Promise.resolve();
   let failNext = false;
+  let deadOffset: number | null = null;
 
   const fetchRows = vi.fn(async (p: Parameters<typeof server.api.fetchRows>[0]) => {
     await fetchGate;
 
-    if (failNext) {
+    if (failNext || p.offset === deadOffset) {
       failNext = false;
       throw new Error("boom");
     }
@@ -68,6 +69,10 @@ function makeHarness(total: number) {
     },
     failNextFetch() {
       failNext = true;
+    },
+    /** Fails one page for good, while every other page of the window loads. */
+    killOffset(offset: number) {
+      deadOffset = offset;
     },
     requested() {
       return fetchRows.mock.calls.map((c) => ({ offset: c[0].offset, limit: c[0].limit }));
@@ -364,6 +369,37 @@ describe("useRowPages", () => {
     expect(store.pageState(0)).toBe("failed");
   });
 
+  it("reports a failed page while the rest of the window draws", async () => {
+    // `status` reads "ready" here, because a window with one page loaded has
+    // something to draw. `failedInView` is what tells the bar that the blank
+    // rows above those are blank for a reason worth a retry button — before it,
+    // a single dropped page reached the screen as rows that never filled, under
+    // a bar that said nothing at all.
+    const h = makeHarness(1_000);
+    const store = createRowStore<Row, number>(PAGE, (r) => r.id);
+
+    h.killOffset(0);
+
+    const { result } = renderHook(
+      () =>
+        useRowPages({
+          descriptor: h.descriptor,
+          store,
+          range: { offset: 0, limit: 2 * PAGE },
+          sort: null,
+          collapsedGroups: [],
+          onRowsLoaded: () => {},
+        }),
+      { wrapper: h.wrapper },
+    );
+
+    await waitFor(() => expect(store.pageState(0)).toBe("failed"));
+
+    expect(store.pageState(1)).toBe("loaded");
+    expect(result.current.status).toBe("ready");
+    expect(result.current.failedInView).toBe(true);
+  });
+
   it("reloads a failed page on retry", async () => {
     const h = makeHarness(1_000);
     const store = createRowStore<Row, number>(PAGE, (r) => r.id);
@@ -388,6 +424,7 @@ describe("useRowPages", () => {
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(store.getRow(0)?.name).toBe("row-0");
+    expect(result.current.failedInView).toBe(false);
   });
 
   it("sends the sort and the collapse set to the server", async () => {

@@ -125,6 +125,40 @@ describe("GridHeaderBar", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/could not load/i);
   });
 
+  it("offers a retry when only SOME of the visible rows failed to load", async () => {
+    // The case that used to reach the screen silently: `status` reads "ready"
+    // because one page of the window loaded, and the rows of the page that
+    // failed draw as empty cells that look exactly like rows still on the way.
+    const onRetry = vi.fn();
+    renderQuiet({ status: "ready", partialFailure: true, onRetry });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/some rows could not load/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing about rows when nothing in view failed", () => {
+    renderQuiet({ status: "ready", partialFailure: false });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("lets a partial failure outrank a stale hold, because blank rows are the worse lie", () => {
+    // A stale grid draws real rows one state behind; a partly failed one draws
+    // rows that are simply absent. The second needs the button.
+    renderQuiet({ status: "ready", partialFailure: true, stale: true });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/some rows could not load/i);
+  });
+
+  it("prefers the whole-window failure over the partial one", () => {
+    renderQuiet({ status: "error", partialFailure: true });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not load rows/i);
+  });
+
   it("holds the slot row's space open while the group is not known yet", () => {
     // Null means "there will be components here". A row that came and went as
     // the grid worked out which group it was in changed the bar's height, and

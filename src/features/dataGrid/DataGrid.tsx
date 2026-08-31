@@ -141,8 +141,19 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
   // per render: only the callback handed to glide closes the loop, over time.
   const { range, onRectChanged } = useWindowRange(pageSize, rangeLoadedRef);
 
-  const { rowAt, isPending, isRangeLoaded, total, span, status, retry, isStale, overlay, store } =
-    useGridData(instance, range, spec, collapsedGroups, repaintRows);
+  const {
+    rowAt,
+    isPending,
+    isRangeLoaded,
+    total,
+    span,
+    status,
+    failedInView,
+    retry,
+    isStale,
+    overlay,
+    store,
+  } = useGridData(instance, range, spec, collapsedGroups, repaintRows);
 
   // Published during render, like the model and the column count below it. The
   // predicate closes over the store the grid is reading NOW, and a window that
@@ -252,6 +263,7 @@ export function DataGrid<TRow extends object, TGroup, TKey extends string | numb
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
       <GridHeaderBar
         status={status}
+        partialFailure={failedInView}
         error={lastError?.message ?? null}
         rowCount={model.rowCount}
         stale={isStale}

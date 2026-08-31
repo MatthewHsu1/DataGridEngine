@@ -16,6 +16,12 @@ export interface BannerGroup {
 
 export interface GridHeaderBarProps {
   status: "loading" | "ready" | "error";
+
+  /**
+   * Whether at least one page failed to load.
+   */
+  partialFailure?: boolean;
+
   error: string | null;
 
   /** Rows the grid is currently drawing. Zero means there are no cells to speak for a load. */
@@ -82,6 +88,7 @@ function Wrong({ children }: { children: ReactNode }) {
  */
 function StatusZone({
   status,
+  partialFailure,
   error,
   rowCount,
   stale,
@@ -89,12 +96,23 @@ function StatusZone({
   onDismissError,
 }: Pick<
   GridHeaderBarProps,
-  "status" | "error" | "rowCount" | "stale" | "onRetry" | "onDismissError"
+  "status" | "partialFailure" | "error" | "rowCount" | "stale" | "onRetry" | "onDismissError"
 >) {
   if (status === "error") {
     return (
       <Wrong>
         Could not load rows.
+        <Button size="1" variant="soft" color="red" onClick={onRetry}>
+          Retry
+        </Button>
+      </Wrong>
+    );
+  }
+
+  if (partialFailure === true) {
+    return (
+      <Wrong>
+        Some rows could not load.
         <Button size="1" variant="soft" color="red" onClick={onRetry}>
           Retry
         </Button>
