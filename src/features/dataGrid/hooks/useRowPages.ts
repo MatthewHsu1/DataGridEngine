@@ -83,6 +83,11 @@ export interface UseRowPagesResult {
   status: "loading" | "ready" | "error";
 
   /**
+   * Whether a page the window SHOWS is in the failed state.
+   */
+  failedInView: boolean;
+
+  /**
    * Counts page settlements. It names no page and carries no row, so nothing
    * about a row's VALUE reaches React through it.
    *
@@ -237,7 +242,12 @@ export function useRowPages<TRow extends object, TGroup, TKey extends string | n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagesKey, stateKey, store, descriptor, queryClient]);
 
-  return { status: statusOf(store, statusPages), settled, retry };
+  return {
+    status: statusOf(store, statusPages),
+    failedInView: statusPages.some((page) => store.pageState(page) === "failed"),
+    settled,
+    retry,
+  };
 }
 
 /** Every page an inclusive window touches. */

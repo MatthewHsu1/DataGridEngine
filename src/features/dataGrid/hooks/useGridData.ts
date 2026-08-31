@@ -91,6 +91,14 @@ export interface UseGridDataResult<TRow extends object, TGroup, TKey extends str
    */
   status: "loading" | "ready" | "error";
 
+  /**
+   * Whether a page of the visible window failed. Unlike `status`, this stays
+   * true while OTHER pages of that window draw fine, which is the case the bar
+   * has to speak for: rows that are blank because a request failed look exactly
+   * like rows that are blank because they are still coming.
+   */
+  failedInView: boolean;
+
   /** Loads the failed pages of the current window again. The error banner's button. */
   retry: () => void;
 
@@ -296,7 +304,7 @@ export function useGridData<TRow extends object, TGroup, TKey extends string | n
   // hold an extra page fetched only for `precedingGroupKey`; that page is off
   // screen, so whether it loads or fails must never change what `status`
   // reports about the page(s) the user can actually see.
-  const { status, settled, retry } = useRowPages({
+  const { status, failedInView, settled, retry } = useRowPages({
     descriptor,
     store: loadingView.store,
     range: loadRange,
@@ -478,6 +486,7 @@ export function useGridData<TRow extends object, TGroup, TKey extends string | n
     total: displayed.total,
     span,
     status,
+    failedInView,
     retry,
     isStale: pending !== null,
     store: displayed.store,
